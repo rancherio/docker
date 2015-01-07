@@ -607,6 +607,15 @@ func inspectFieldJSON(name, field string) (string, error) {
 	return strings.TrimSpace(out), nil
 }
 
+func inspectFieldAndMarshall(name, field string, output interface{}) error {
+	str, err := inspectFieldJSON(name, field)
+	if err != nil {
+		return err
+	}
+
+	return json.Unmarshal([]byte(str), output)
+}
+
 func inspectFieldMap(name, path, field string) (string, error) {
 	format := fmt.Sprintf("{{index .%s %q}}", path, field)
 	inspectCmd := exec.Command(dockerBinary, "inspect", "-f", format, name)

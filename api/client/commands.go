@@ -1335,7 +1335,7 @@ func (cli *DockerCli) CmdImages(args ...string) error {
 	flTree := cmd.Bool([]string{"#t", "#tree", "#-tree"}, false, "Output graph in tree format")
 
 	flFilter := opts.NewListOpts(nil)
-	cmd.Var(&flFilter, []string{"f", "-filter"}, "Provide filter values (i.e., 'dangling=true')")
+	cmd.Var(&flFilter, []string{"f", "-filter"}, "Provide filter values. Valid filters:\ndangling=true - unlabeled images with no children\nlabel=<key> or label=<key>=<value>")
 	cmd.Require(flag.Max, 1)
 
 	utils.ParseFlags(cmd, args, true)
@@ -1571,7 +1571,7 @@ func (cli *DockerCli) CmdPs(args ...string) error {
 	)
 	cmd.Require(flag.Exact, 0)
 
-	cmd.Var(&flFilter, []string{"f", "-filter"}, "Provide filter values. Valid filters:\nexited=<int> - containers with exit code of <int>\nstatus=(restarting|running|paused|exited)")
+	cmd.Var(&flFilter, []string{"f", "-filter"}, "Provide filter values. Valid filters:\nexited=<int> - containers with exit code of <int>\nstatus=(restarting|running|paused|exited)\nlabel=<key> or label=<key>=<value>")
 
 	utils.ParseFlags(cmd, args, true)
 	if *last == -1 && *nLatest {
