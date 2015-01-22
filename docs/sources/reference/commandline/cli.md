@@ -1044,7 +1044,9 @@ To see how the `docker:latest` image was built:
     List images
 
       -a, --all=false      Show all images (by default filter out the intermediate image layers)
-      -f, --filter=[]      Provide filter values (i.e., 'dangling=true')
+      -f, --filter=[]      Provide filter values. Valid filters:
+                             dangling=true - unlabeled images with no children
+                             label=<key> or label=<key>=<value>
       --no-trunc=false     Don't truncate output
       -q, --quiet=false    Only show numeric IDs
 
@@ -1423,6 +1425,7 @@ The `docker rename` command allows the container to be renamed to a different na
       -f, --filter=[]       Provide filter values. Valid filters:
                               exited=<int> - containers with exit code of <int>
                               status=(restarting|running|paused|exited)
+                              label=<key> or label=<key>=<value>
       -l, --latest=false    Show only the latest created container, include non-running ones.
       -n=-1                 Show n last created containers, include non-running ones.
       --no-trunc=false      Don't truncate output
@@ -1610,6 +1613,8 @@ removed before the image is removed.
       --ipc=""                   Default is to create a private IPC namespace (POSIX SysV IPC) for the container
                                    'container:<name|id>': reuses another container shared memory, semaphores and message queues
                                    'host': use the host shared memory,semaphores and message queues inside the container.  Note: the host mode gives the container full access to local shared memory and is therefore considered insecure.
+      -l, --label=[]             Set meta data on a container, for example com.example.key=value
+      -label-file=[]             Read in a line delimited file of labels
       --link=[]                  Add link to another container in the form of name:alias
       --lxc-conf=[]              (lxc exec-driver only) Add custom lxc options --lxc-conf="lxc.cgroup.cpuset.cpus = 0,1"
       -m, --memory=""            Memory limit (format: <number><optional unit>, where unit = b, k, m or g)
