@@ -65,6 +65,35 @@ func FromParam(p string) (Args, error) {
 	return args, nil
 }
 
+func (filters Args) MatchKVList(field string, sources map[string]string) bool {
+	fieldValues := filters[field]
+
+	//do not filter if there is no filter set or cannot determine filter
+	if len(fieldValues) == 0 {
+		return true
+	}
+
+	if sources == nil {
+		return false
+	}
+
+	for _, name2match := range fieldValues {
+		testKV := strings.SplitN(name2match, "=", 2)
+
+		for k, v := range sources {
+			if len(testKV) == 1 {
+				if k == testKV[0] {
+					return true
+				}
+			} else if k == testKV[0] && v == testKV[1] {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
 func (filters Args) Match(field, source string) bool {
 	fieldValues := filters[field]
 
