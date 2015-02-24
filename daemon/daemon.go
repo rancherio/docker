@@ -6,12 +6,14 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"os/signal"
 	"path"
 	"path/filepath"
 	"regexp"
 	"runtime"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/docker/libcontainer/label"
@@ -785,7 +787,29 @@ func NewDaemon(config *Config, eng *engine.Engine) (*Daemon, error) {
 	return daemon, nil
 }
 
+func handleSIGCHLD(sigChan chan os.Signal) {
+	for _ = range sigChan {
+		for {
+			pid, err := syscall.Wait4(-1, nil, syscall.WNOHANG, nil)
+			if err != nil {
+				log.Error(err)
+				break
+			}
+			if pid <= 0 {
+				break
+			}
+		}
+	}
+}
+
+
 func NewDaemonFromDirectory(config *Config, eng *engine.Engine) (*Daemon, error) {
+	// register handler for handling dead children
+	if os.Getpid() == 1 {
+		sigChan := make(chan os.Signal, 1)
+		signal.Notify(sigChan, syscall.SIGCHLD)
+		go handleSIGCHLD(sigChan)
+	}
 	if config.Mtu == 0 {
 		config.Mtu = getDefaultNetworkMtu()
 	}
