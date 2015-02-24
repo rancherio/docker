@@ -10,8 +10,10 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/docker/libcontainer/label"
@@ -810,7 +812,64 @@ func NewDaemon(config *Config, eng *engine.Engine) (*Daemon, error) {
 	return daemon, nil
 }
 
+func getZombiePid(path string) int {
+	// Ignore errors
+	content, err := ioutil.ReadFile(path)
+	if err != nil {
+		return 0
+	}
+
+	fields := strings.Split(string(content), ") ")
+	fields = strings.Split(fields[len(fields)-1], " ")
+
+	if fields[0] == "Z" && fields[1] == "1" {
+		i, _ := strconv.Atoi(strings.Split(string(content), " ")[0])
+		return i
+	}
+
+	return 0
+}
+
+func reaper() {
+	reap := make([]string, 0, 5)
+
+	for {
+		time.Sleep(1 * time.Second)
+
+		for _, zombie := range reap {
+			zombiePid := getZombiePid(zombie)
+			log.Debugf("Reaping PID %s : %d", zombie, zombiePid)
+			if zombiePid <= 0 {
+				continue
+			}
+
+			reaped, err := syscall.Wait4(zombiePid, nil, syscall.WNOHANG, nil)
+			if err != nil || reaped <= 0 {
+				log.Errorf("Failed to reap %d, got %s : %v", zombiePid, reaped, err)
+			}
+		}
+
+		reap = reap[:0]
+
+		files, err := filepath.Glob("/proc/*/stat")
+		if err != nil {
+			log.Errorf("Failed to read processes : %v", err)
+			continue
+		}
+
+		for _, file := range files {
+			if getZombiePid(file) > 0 {
+				reap = append(reap, file)
+			}
+		}
+	}
+}
+
 func NewDaemonFromDirectory(config *Config, eng *engine.Engine) (*Daemon, error) {
+	if os.Getpid() == 1 {
+		// Reap zombies
+		go reaper()
+	}
 	if config.Mtu == 0 {
 		config.Mtu = getDefaultNetworkMtu()
 	}
