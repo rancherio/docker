@@ -1906,6 +1906,10 @@ func (cli *DockerCli) CmdLogs(args ...string) error {
 		return err
 	}
 
+	if env.GetSubEnv("HostConfig").GetSubEnv("LogConfig").Get("Type") != "default" {
+		return fmt.Errorf("\"logs\" command is supported only for \"default\" logging driver")
+	}
+
 	v := url.Values{}
 	v.Set("stdout", "1")
 	v.Set("stderr", "1")
