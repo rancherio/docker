@@ -97,6 +97,8 @@ type DeviceMapping struct {
 type RestartPolicy struct {
 	Name              string
 	MaximumRetryCount int
+	MaximumInterval   int
+	FixedInterval     int
 }
 
 type HostConfig struct {

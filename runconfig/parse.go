@@ -47,6 +47,7 @@ func Parse(cmd *flag.FlagSet, args []string) (*Config, *HostConfig, *flag.FlagSe
 		flCapAdd      = opts.NewListOpts(nil)
 		flCapDrop     = opts.NewListOpts(nil)
 		flSecurityOpt = opts.NewListOpts(nil)
+		flRestartOpts = opts.NewListOpts(nil)
 
 		flNetwork         = cmd.Bool([]string{"#n", "#-networking"}, true, "Enable networking for this container")
 		flPrivileged      = cmd.Bool([]string{"#privileged", "-privileged"}, false, "Give extended privileges to this container")
@@ -87,6 +88,7 @@ func Parse(cmd *flag.FlagSet, args []string) (*Config, *HostConfig, *flag.FlagSe
 	cmd.Var(&flCapDrop, []string{"-cap-drop"}, "Drop Linux capabilities")
 	cmd.Var(&flSecurityOpt, []string{"-security-opt"}, "Security Options")
 	cmd.Var(flUlimits, []string{"-ulimit"}, "Ulimit options")
+	cmd.Var(&flRestartOpts, []string{"-restart-opt"}, "Restart options")
 
 	cmd.Require(flag.Min, 1)
 
@@ -269,7 +271,7 @@ func Parse(cmd *flag.FlagSet, args []string) (*Config, *HostConfig, *flag.FlagSe
 		return nil, nil, cmd, fmt.Errorf("--net: invalid net mode: %v", err)
 	}
 
-	restartPolicy, err := parseRestartPolicy(*flRestartPolicy)
+	restartPolicy, err := parseRestartPolicy(*flRestartPolicy, flRestartOpts)
 	if err != nil {
 		return nil, nil, cmd, err
 	}
@@ -331,13 +333,80 @@ func Parse(cmd *flag.FlagSet, args []string) (*Config, *HostConfig, *flag.FlagSe
 }
 
 // parseRestartPolicy returns the parsed policy or an error indicating what is incorrect
-func parseRestartPolicy(policy string) (RestartPolicy, error) {
+func parseRestartPolicy(policy string, opts opts.ListOpts) (RestartPolicy, error) {
+	p, err := parseRestartPolicyString(policy)
+
+	if err != nil {
+		return p, err
+	}
+
+	op := RestartPolicy{}
+
+	if len(opts.GetAll()) == 0 {
+		return p, nil
+	}
+
+	if len(opts.GetAll()) > 0 {
+		for _, opt := range opts.GetAll() {
+			optParts := strings.Split(opt, "=")
+			switch optParts[0] {
+			case "policy":
+				op.Name = optParts[1]
+			case "limit":
+				count, err := strconv.Atoi(optParts[1])
+				if err != nil {
+					return op, err
+				}
+				op.MaximumRetryCount = count
+			case "max-interval":
+				maximumInterval, err := parseInterval(optParts[1])
+				if err != nil {
+					return op, err
+				}
+				op.MaximumInterval = maximumInterval
+			case "fixed-interval":
+				fixedInterval, err := parseInterval(optParts[1])
+				if err != nil {
+					return op, err
+				}
+				op.FixedInterval = fixedInterval
+			default:
+				return op, fmt.Errorf("invalid option %s", optParts[0])
+			}
+		}
+	}
+	return mergeAndValidateRestartPolicy(p, op)
+}
+
+func parseInterval(interval string) (int, error) {
+	if len(interval) < 2 {
+		return 0, fmt.Errorf("invalid interval %s", interval)
+	}
+	unit := interval[len(interval)-1:]
+	var multiplier int
+	switch unit {
+	case "s":
+		multiplier = 1
+	case "m":
+		multiplier = 60
+	case "h":
+		multiplier = 60 * 60
+	default:
+		return 0, fmt.Errorf("invalid time unit %s", unit)
+	}
+	intervalValue, err := strconv.Atoi(interval[:len(interval)-1])
+	if err != nil {
+		return 0, err
+	}
+	return multiplier * intervalValue, nil
+}
+
+func parseRestartPolicyString(policy string) (RestartPolicy, error) {
 	p := RestartPolicy{}
 
 	if policy == "" {
 		return p, nil
 	}
-
 	var (
 		parts = strings.Split(policy, ":")
 		name  = parts[0]
@@ -357,14 +426,47 @@ func parseRestartPolicy(policy string) (RestartPolicy, error) {
 			if err != nil {
 				return p, err
 			}
-
 			p.MaximumRetryCount = count
 		}
 	default:
 		return p, fmt.Errorf("invalid restart policy %s", name)
 	}
-
 	return p, nil
+}
+
+// overrides restart with restart-opt values and validates
+func mergeAndValidateRestartPolicy(p, op RestartPolicy) (RestartPolicy, error) {
+	restartPolicy := RestartPolicy{}
+	if op.Name != "" {
+		restartPolicy.Name = op.Name
+	} else {
+		restartPolicy.Name = p.Name
+	}
+	if restartPolicy.Name == "always" {
+		if p.MaximumRetryCount != 0 || op.MaximumRetryCount != 0 {
+			return restartPolicy, fmt.Errorf("cannot set limit on \"always\"")
+		}
+	}
+	if op.MaximumRetryCount != 0 {
+		restartPolicy.MaximumRetryCount = op.MaximumRetryCount
+	} else {
+		restartPolicy.MaximumRetryCount = p.MaximumRetryCount
+	}
+
+	if op.MaximumInterval != 0 {
+		restartPolicy.MaximumInterval = op.MaximumInterval
+	} else {
+		restartPolicy.MaximumInterval = p.MaximumInterval
+	}
+
+	if op.FixedInterval != 0 {
+		if restartPolicy.MaximumInterval != 0 {
+			return restartPolicy, fmt.Errorf("cannot set both \"fixed-interval\" and \"max-interval\"")
+		}
+		restartPolicy.FixedInterval = op.FixedInterval
+	}
+
+	return restartPolicy, nil
 }
 
 // options will come in the format of name.key=value or name.option

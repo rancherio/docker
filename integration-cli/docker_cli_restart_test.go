@@ -2,6 +2,7 @@ package main
 
 import (
 	"os/exec"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -213,4 +214,84 @@ func TestRestartPolicyOnFailure(t *testing.T) {
 	}
 
 	logDone("restart - recording restart policy name for --restart=on-failure")
+}
+
+func TestRestartOptsOverridesRestartPolicy(t *testing.T) {
+	defer deleteAllContainers()
+
+	cmd := exec.Command(dockerBinary, "run", "-d", "--restart=always", "--restart-opt", "policy=on-failure", "--restart-opt", "limit=10", "busybox", "false")
+	out, _, err := runCommandWithOutput(cmd)
+	if err != nil {
+		t.Fatal(err, out)
+	}
+
+	id := strings.TrimSpace(string(out))
+	name, err := inspectField(id, "HostConfig.RestartPolicy.Name")
+	if err != nil {
+		t.Fatal(err, out)
+	}
+
+	if name != "on-failure" {
+		t.Fatalf("Container restart policy name is %s, expected %s", name, "on-failure")
+	}
+
+	limit, err := inspectField(id, "HostConfig.RestartPolicy.MaximumRetryCount")
+	if err != nil {
+		t.Fatal(err, out)
+	}
+
+	lt, err := strconv.Atoi(limit)
+	if err != nil {
+		t.Fatal(err, out)
+	}
+
+	if lt != 10 {
+		t.Fatalf("Container restart policy limit is %s, expected 10", limit)
+	}
+
+	logDone("restart-opt - recording restart policy attrs for --restart=on-failure and --restart-opt policy=always")
+}
+
+func TestRestartFixedInterval(t *testing.T) {
+	cmd := exec.Command(dockerBinary, "run", "-d", "--restart-opt", "policy=on-failure", "--restart-opt", "fixed-interval=10m", "busybox", "false")
+	out, _, err := runCommandWithOutput(cmd)
+	if err != nil {
+		t.Fatal(err, out)
+	}
+
+	id := strings.TrimSpace(string(out))
+	interval, err := inspectField(id, "HostConfig.RestartPolicy.FixedInterval")
+	if err != nil {
+		t.Fatal(err, out)
+	}
+
+	inter, err := strconv.Atoi(interval)
+	if err != nil {
+		t.Fatal(err, out)
+	}
+
+	if inter != 600 {
+		t.Fatalf("Container restart policy fixed-interval is %s, expected 600", interval)
+	}
+	logDone("restart-opt - recording restart policy attrs for --restart-opt policy=on-failure and setting max-interval")
+}
+
+func TestRestartOptsEitherMaxOrFixedInterval(t *testing.T) {
+	cmd := exec.Command(dockerBinary, "run", "-d", "--restart-opt", "policy=always", "--restart-opt", "fixed-interval=10s", "--restart-opt", "max-interval=10m", "busybox", "false")
+	out, _, err := runCommandWithOutput(cmd)
+	if err == nil {
+		t.Fatal(err, out)
+	}
+
+	logDone("restart-opt - recording restart policy where max-interval and fixed-interval is set, expect error")
+}
+
+func TestRestartOptsEitherAlwaysOrMaxRetry(t *testing.T) {
+	cmd := exec.Command(dockerBinary, "run", "-d", "--restart-opt", "policy=always", "--restart-opt", "limit=10", "--restart-opt", "max-interval=10m", "busybox", "false")
+	out, _, err := runCommandWithOutput(cmd)
+	if err == nil {
+		t.Fatal(err, out)
+	}
+
+	logDone("restart-opt - recording restart policy where policy=always and limit is set, expect error")
 }

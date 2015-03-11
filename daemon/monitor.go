@@ -190,9 +190,18 @@ func (m *containerMonitor) resetMonitor(successful bool) {
 	if executionTime > 10 {
 		m.timeIncrement = defaultTimeIncrement
 	} else {
-		// otherwise we need to increment the amount of time we wait before restarting
+		// we need to increment the amount of time we wait before restarting
 		// the process.  We will build up by multiplying the increment by 2
-		m.timeIncrement *= 2
+		if m.timeIncrement*2 > m.restartPolicy.MaximumInterval*1000 {
+			m.timeIncrement = m.restartPolicy.MaximumInterval * 1000
+		} else {
+			m.timeIncrement *= 2
+		}
+
+		// override with fixed interval if it exists
+		if m.restartPolicy.FixedInterval != 0 {
+			m.timeIncrement = m.restartPolicy.FixedInterval * 1000
+		}
 	}
 
 	// the container exited successfully so we need to reset the failure counter
