@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
 	"regexp"
@@ -51,6 +52,8 @@ import (
 var (
 	validContainerNameChars   = `[a-zA-Z0-9][a-zA-Z0-9_.-]`
 	validContainerNamePattern = regexp.MustCompile(`^/?` + validContainerNameChars + `+$`)
+	startHook                 = "/var/lib/docker/hooks/start"
+	stopHook                  = "/var/lib/docker/hooks/stop"
 )
 
 type contStore struct {
@@ -854,6 +857,17 @@ func NewDaemonFromDirectory(config *Config, eng *engine.Engine) (*Daemon, error)
 		return nil, err
 	}
 
+	// check if start hook exists
+	if _, err := os.Open(startHook); !os.IsNotExist(err) {
+		log.Info("executing start hook...")
+		cmd := exec.Command(startHook)
+		out, execErr := cmd.CombinedOutput()
+		if execErr != nil {
+			return nil, execErr
+		}
+		log.WithFields(log.Fields{"output": string(out)}).Info("received output from executing start hook")
+	}
+
 	// set up the TempDir to use a canonical path
 	tmp, err := utils.TempDir(config.Root)
 	if err != nil {
@@ -1068,6 +1082,17 @@ func (daemon *Daemon) shutdown() error {
 		}
 	}
 	group.Wait()
+
+	// check if stop hook exists
+	if _, err := os.Open(stopHook); !os.IsNotExist(err) {
+		log.Info("executing start hook...")
+		cmd := exec.Command(stopHook)
+		out, execErr := cmd.CombinedOutput()
+		if execErr != nil {
+			return execErr
+		}
+		log.WithFields(log.Fields{"output": string(out)}).Info("received output from executing start hook")
+	}
 
 	return nil
 }
