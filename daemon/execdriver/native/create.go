@@ -89,6 +89,8 @@ func generateIfaceName() (string, error) {
 func (d *driver) createNetwork(container *configs.Config, c *execdriver.Command) error {
 	if c.Network.HostNetworking {
 		container.Namespaces.Remove(configs.NEWNET)
+		container.Namespaces.Remove(configs.NEWUTS)
+		container.Hostname = ""
 		return nil
 	}
 
