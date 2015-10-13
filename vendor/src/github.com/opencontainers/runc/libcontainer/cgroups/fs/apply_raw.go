@@ -213,7 +213,27 @@ func (m *Manager) GetPids() ([]int, error) {
 		return nil, err
 	}
 
-	return cgroups.ReadProcsFile(dir)
+	var pids []int
+	// collect pids from all sub-cgroups
+	err = filepath.Walk(dir, func(p string, info os.FileInfo, iErr error) error {
+		if info.IsDir() {
+			return nil
+		}
+
+		dir, file := filepath.Split(p)
+		if file == "cgroup.procs" {
+			if iErr != nil {
+				return iErr
+			}
+			cPids, err := cgroups.ReadProcsFile(dir)
+			if err != nil {
+				return err
+			}
+			pids = append(pids, cPids...)
+		}
+		return nil
+	})
+	return pids, err
 }
 
 func getCgroupData(c *configs.Cgroup, pid int) (*data, error) {
