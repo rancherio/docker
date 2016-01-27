@@ -5,6 +5,7 @@ set -e
 declare -A daemonSupporting
 daemonSupporting=(
 	[linux/amd64]=1
+	[linux/arm]=1
 	[windows/amd64]=1
 )
 
