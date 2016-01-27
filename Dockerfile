@@ -202,7 +202,7 @@ RUN useradd --create-home --gid docker unprivilegeduser
 
 VOLUME /var/lib/docker
 WORKDIR /go/src/github.com/docker/docker
-ENV DOCKER_BUILDTAGS apparmor seccomp selinux
+ENV DOCKER_BUILDTAGS exclude_graphdriver_devicemapper
 
 # Let us use a .bashrc file
 RUN ln -sfv $PWD/.bashrc ~/.bashrc
@@ -246,6 +246,8 @@ RUN set -x \
 
 # Wrap all commands in the "docker-in-docker" script to allow nested containers
 ENTRYPOINT ["hack/dind"]
+
+RUN apt-get install -y gcc-arm-linux-gnueabihf
 
 # Upload docker source
 COPY . /go/src/github.com/docker/docker
