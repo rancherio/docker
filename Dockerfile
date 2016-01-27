@@ -23,21 +23,7 @@
 # the case. Therefore, you don't have to disable it anymore.
 #
 
-FROM debian:jessie
-
-# add zfs ppa
-RUN apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys E871F18B51E0147C77796AC81196BA81F6B0FC61 \
-	|| apt-key adv --keyserver hkp://pgp.mit.edu:80 --recv-keys E871F18B51E0147C77796AC81196BA81F6B0FC61
-RUN echo deb http://ppa.launchpad.net/zfs-native/stable/ubuntu trusty main > /etc/apt/sources.list.d/zfs.list
-
-# add llvm repo
-RUN apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 6084F3CF814B57C1CF12EFD515CF4D18AF4F7421 \
-	|| apt-key adv --keyserver hkp://pgp.mit.edu:80 --recv-keys 6084F3CF814B57C1CF12EFD515CF4D18AF4F7421
-RUN echo deb http://llvm.org/apt/jessie/ llvm-toolchain-jessie-3.8 main > /etc/apt/sources.list.d/llvm.list
-
-# allow replacing httpredir mirror
-ARG APT_MIRROR=httpredir.debian.org
-RUN sed -i s/httpredir.debian.org/$APT_MIRROR/g /etc/apt/sources.list
+FROM ubuntu:16.04
 
 # Packaged dependencies
 RUN apt-get update && apt-get install -y \
@@ -49,11 +35,14 @@ RUN apt-get update && apt-get install -y \
 	bsdmainutils \
 	btrfs-tools \
 	build-essential \
+	ca-certificates \
 	clang-3.8 \
 	createrepo \
 	curl \
 	dpkg-sig \
 	gcc-mingw-w64 \
+	gcc-arm-linux-gnueabihf \
+	gcc-aarch64-linux-gnu \
 	git \
 	iptables \
 	jq \
@@ -61,24 +50,22 @@ RUN apt-get update && apt-get install -y \
 	libcap-dev \
 	libltdl-dev \
 	libsqlite3-dev \
-	libsystemd-journal-dev \
+	libsystemd-dev \
 	libtool \
 	mercurial \
 	net-tools \
 	pkg-config \
 	python-dev \
 	python-mock \
-	python-pip \
 	python-websocket \
-	ubuntu-zfs \
+	zfsutils-linux \
 	xfsprogs \
-	libzfs-dev \
+	libzfslinux-dev \
 	tar \
 	zip \
-	--no-install-recommends \
-	&& pip install awscli==1.10.15 \
 	&& ln -snf /usr/bin/clang-3.8 /usr/local/bin/clang \
 	&& ln -snf /usr/bin/clang++-3.8 /usr/local/bin/clang++
+RUN curl -s https://bootstrap.pypa.io/get-pip.py | python && pip install awscli==1.10.15
 
 # Get lvm2 source for compiling statically
 ENV LVM2_VERSION 2.02.103
@@ -203,7 +190,8 @@ RUN useradd --create-home --gid docker unprivilegeduser
 
 VOLUME /var/lib/docker
 WORKDIR /go/src/github.com/docker/docker
-ENV DOCKER_BUILDTAGS apparmor pkcs11 seccomp selinux
+ENV DOCKER_BUILDTAGS exclude_graphdriver_devicemapper pkcs11 selinux
+# TODO add seccomp to DOCKER_BUILDTAGS: requires cross-building seccomp for arm, arm64
 
 # Let us use a .bashrc file
 RUN ln -sfv $PWD/.bashrc ~/.bashrc
@@ -254,23 +242,31 @@ RUN set -x \
 	&& git clone git://github.com/opencontainers/runc.git "$GOPATH/src/github.com/opencontainers/runc" \
 	&& cd "$GOPATH/src/github.com/opencontainers/runc" \
 	&& git checkout -q "$RUNC_COMMIT" \
-	&& make static BUILDTAGS="seccomp apparmor selinux" \
-	&& cp runc /usr/local/bin/docker-runc
+	&& GOARCH=arm CC=/usr/bin/arm-linux-gnueabihf-gcc make static BUILDTAGS="selinux" \
+	&& cp runc /usr/local/bin/docker-runc_arm \
+	&& GOARCH=arm64 CC=/usr/bin/aarch64-linux-gnu-gcc make static BUILDTAGS="selinux" \
+	&& cp runc /usr/local/bin/docker-runc_arm64
 
 # Install containerd
 ENV CONTAINERD_COMMIT v0.2.1
 RUN set -x \
-	&& export GOPATH="$(mktemp -d)" \
+	&& export GOPATH="$(mktemp -d)" CGO_ENABLED=1 \
 	&& git clone git://github.com/docker/containerd.git "$GOPATH/src/github.com/docker/containerd" \
 	&& cd "$GOPATH/src/github.com/docker/containerd" \
 	&& git checkout -q "$CONTAINERD_COMMIT" \
-	&& make static \
-	&& cp bin/containerd /usr/local/bin/docker-containerd \
-	&& cp bin/containerd-shim /usr/local/bin/docker-containerd-shim \
-	&& cp bin/ctr /usr/local/bin/docker-containerd-ctr
+	&& GOARCH=arm CC=/usr/bin/arm-linux-gnueabihf-gcc make static \
+	&& cp bin/containerd /usr/local/bin/docker-containerd_arm \
+	&& cp bin/containerd-shim /usr/local/bin/docker-containerd-shim_arm \
+	&& cp bin/ctr /usr/local/bin/docker-containerd-ctr_arm \
+	&& GOARCH=arm64 CC=/usr/bin/aarch64-linux-gnu-gcc make static \
+	&& cp bin/containerd /usr/local/bin/docker-containerd_arm64 \
+	&& cp bin/containerd-shim /usr/local/bin/docker-containerd-shim_arm64 \
+	&& cp bin/ctr /usr/local/bin/docker-containerd-ctr_arm64
 
 # Wrap all commands in the "docker-in-docker" script to allow nested containers
 ENTRYPOINT ["hack/dind"]
+
+ENV CPATH /usr/local/include
 
 # Upload docker source
 COPY . /go/src/github.com/docker/docker
