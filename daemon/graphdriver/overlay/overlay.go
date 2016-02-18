@@ -20,6 +20,7 @@ import (
 	"github.com/docker/docker/pkg/idtools"
 
 	"github.com/opencontainers/runc/libcontainer/label"
+	"github.com/opencontainers/runc/libcontainer/selinux"
 )
 
 // This is a small wrapper over the NaiveDiffWriter that lets us have a custom
@@ -377,9 +378,16 @@ func (d *Driver) Get(id string, mountLabel string) (string, error) {
 		return mergedDir, nil
 	}
 
-	if err := syscall.Mount("overlay", mergedDir, "overlay", 0, label.FormatMountLabel(opts, mountLabel)); err != nil {
-		d.ctr.Decrement(id)
-		return "", fmt.Errorf("error creating overlay mount to %s: %v", mergedDir, err)
+	if selinux.SelinuxEnabled() && mountLabel == "" {
+		if err := syscall.Mount("overlay", mergedDir, "overlay", 0, label.FormatMountLabel(opts, "system_u:object_r:unlabeled_t:s0")); err != nil {
+			d.ctr.Decrement(id)
+			return "", fmt.Errorf("error creating overlay mount to %s: %v", mergedDir, err)
+		}
+	} else {
+		if err := syscall.Mount("overlay", mergedDir, "overlay", 0, label.FormatMountLabel(opts, mountLabel)); err != nil {
+			d.ctr.Decrement(id)
+			return "", fmt.Errorf("error creating overlay mount to %s: %v", mergedDir, err)
+		}
 	}
 	// chown "workdir/work" to the remapped root UID/GID. Overlay fs inside a
 	// user namespace requires this to move a directory from lower to upper.
