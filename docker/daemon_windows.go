@@ -4,6 +4,7 @@ package main
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"syscall"
 
@@ -61,4 +62,8 @@ func setupConfigReloadTrap(configFile string, flags *mflag.FlagSet, reload func(
 
 func (cli *DaemonCli) getPlatformRemoteOptions() []libcontainerd.RemoteOption {
 	return nil
+}
+
+func wrapListeners(proto string, ls []net.Listener) []net.Listener {
+	return ls
 }
