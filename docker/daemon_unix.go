@@ -4,12 +4,14 @@ package main
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"github.com/Sirupsen/logrus"
 	apiserver "github.com/docker/docker/api/server"
+	"github.com/docker/docker/cmd/dockerd/hack"
 	"github.com/docker/docker/daemon"
 	"github.com/docker/docker/libcontainerd"
 	"github.com/docker/docker/pkg/mflag"
@@ -79,4 +81,18 @@ func (cli *DaemonCli) getPlatformRemoteOptions() []libcontainerd.RemoteOption {
 		opts = append(opts, libcontainerd.WithRuntimeArgs(args))
 	}
 	return opts
+}
+
+func wrapListeners(proto string, ls []net.Listener) []net.Listener {
+	if os.Getenv("DOCKER_HTTP_HOST_COMPAT") != "" {
+		switch proto {
+		case "unix":
+			ls[0] = &hack.MalformedHostHeaderOverride{ls[0]}
+		case "fd":
+			for i := range ls {
+				ls[i] = &hack.MalformedHostHeaderOverride{ls[i]}
+			}
+		}
+	}
+	return ls
 }

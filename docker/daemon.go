@@ -250,13 +250,13 @@ func (cli *DaemonCli) CmdDaemon(args ...string) error {
 		if len(protoAddrParts) != 2 {
 			logrus.Fatalf("bad format %s, expected PROTO://ADDR", protoAddr)
 		}
-		l, err := listeners.Init(protoAddrParts[0], protoAddrParts[1], serverConfig.SocketGroup, serverConfig.TLSConfig)
+		ls, err := listeners.Init(protoAddrParts[0], protoAddrParts[1], serverConfig.SocketGroup, serverConfig.TLSConfig)
 		if err != nil {
 			logrus.Fatal(err)
 		}
-
+		ls = wrapListeners(protoAddrParts[0], ls)
 		logrus.Debugf("Listener created for HTTP on %s (%s)", protoAddrParts[0], protoAddrParts[1])
-		api.Accept(protoAddrParts[1], l...)
+		api.Accept(protoAddrParts[1], ls...)
 	}
 
 	if err := migrateKey(); err != nil {
