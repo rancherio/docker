@@ -21,6 +21,9 @@ import (
 // path does not refer to a directory.
 var ErrExtractPointNotDirectory = errors.New("extraction point is not a directory")
 
+// ErrRootFSReadOnly is returned when a container
+var ErrRootFSReadOnly = errors.New("container rootfs is marked read-only")
+
 // ContainerCopy performs a deprecated operation of archiving the resource at
 // the specified path in the container identified by the given name.
 func (daemon *Daemon) ContainerCopy(name string, res string) (io.ReadCloser, error) {
