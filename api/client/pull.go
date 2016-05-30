@@ -21,7 +21,6 @@ import (
 func (cli *DockerCli) CmdPull(args ...string) error {
 	cmd := Cli.Subcmd("pull", []string{"NAME[:TAG|@DIGEST]"}, Cli.DockerCommands["pull"].Description, true)
 	allTags := cmd.Bool([]string{"a", "-all-tags"}, false, "Download all tagged images in the repository")
-	addTrustedFlags(cmd, true)
 	cmd.Require(flag.Exact, 1)
 
 	cmd.ParseFlags(args, true)
@@ -40,16 +39,6 @@ func (cli *DockerCli) CmdPull(args ...string) error {
 		fmt.Fprintf(cli.out, "Using default tag: %s\n", reference.DefaultTag)
 	}
 
-	var tag string
-	switch x := distributionRef.(type) {
-	case reference.Canonical:
-		tag = x.Digest().String()
-	case reference.NamedTagged:
-		tag = x.Tag()
-	}
-
-	ref := registry.ParseReference(tag)
-
 	// Resolve the Repository name from fqn to RepositoryInfo
 	repoInfo, err := registry.ParseRepositoryInfo(distributionRef)
 	if err != nil {
@@ -58,11 +47,6 @@ func (cli *DockerCli) CmdPull(args ...string) error {
 
 	authConfig := cli.resolveAuthConfig(repoInfo.Index)
 	requestPrivilege := cli.registryAuthenticationPrivilegedFunc(repoInfo.Index, "pull")
-
-	if isTrusted() && !ref.HasDigest() {
-		// Check if tag is digest
-		return cli.trustedPull(repoInfo, ref, authConfig, requestPrivilege)
-	}
 
 	return cli.imagePullPrivileged(authConfig, distributionRef.String(), "", requestPrivilege)
 }

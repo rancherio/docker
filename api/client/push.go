@@ -20,7 +20,6 @@ import (
 // Usage: docker push NAME[:TAG]
 func (cli *DockerCli) CmdPush(args ...string) error {
 	cmd := Cli.Subcmd("push", []string{"NAME[:TAG]"}, Cli.DockerCommands["push"].Description, true)
-	addTrustedFlags(cmd, false)
 	cmd.Require(flag.Exact, 1)
 
 	cmd.ParseFlags(args, true)
@@ -47,9 +46,6 @@ func (cli *DockerCli) CmdPush(args ...string) error {
 	authConfig := cli.resolveAuthConfig(repoInfo.Index)
 
 	requestPrivilege := cli.registryAuthenticationPrivilegedFunc(repoInfo.Index, "push")
-	if isTrusted() {
-		return cli.trustedPush(repoInfo, tag, authConfig, requestPrivilege)
-	}
 
 	responseBody, err := cli.imagePushPrivileged(authConfig, ref.Name(), tag, requestPrivilege)
 	if err != nil {

@@ -92,22 +92,12 @@ func (cli *DockerCli) createContainer(config *container.Config, hostConfig *cont
 		defer containerIDFile.Close()
 	}
 
-	var trustedRef reference.Canonical
 	_, ref, err := reference.ParseIDOrReference(config.Image)
 	if err != nil {
 		return nil, err
 	}
 	if ref != nil {
 		ref = reference.WithDefaultTag(ref)
-
-		if ref, ok := ref.(reference.NamedTagged); ok && isTrusted() {
-			var err error
-			trustedRef, err = cli.trustedReference(ref)
-			if err != nil {
-				return nil, err
-			}
-			config.Image = trustedRef.String()
-		}
 	}
 
 	//create the container
@@ -121,11 +111,6 @@ func (cli *DockerCli) createContainer(config *container.Config, hostConfig *cont
 			// we don't want to write to stdout anything apart from container.ID
 			if err = cli.pullImageCustomOut(config.Image, cli.err); err != nil {
 				return nil, err
-			}
-			if ref, ok := ref.(reference.NamedTagged); ok && trustedRef != nil {
-				if err := cli.tagTrusted(trustedRef, ref); err != nil {
-					return nil, err
-				}
 			}
 			// Retry
 			var retryErr error
@@ -154,7 +139,6 @@ func (cli *DockerCli) createContainer(config *container.Config, hostConfig *cont
 // Usage: docker create [OPTIONS] IMAGE [COMMAND] [ARG...]
 func (cli *DockerCli) CmdCreate(args ...string) error {
 	cmd := Cli.Subcmd("create", []string{"IMAGE [COMMAND] [ARG...]"}, Cli.DockerCommands["create"].Description, true)
-	addTrustedFlags(cmd, true)
 
 	// These are flags not stored in Config/HostConfig
 	var (

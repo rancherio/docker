@@ -67,7 +67,6 @@ func runStartContainerErr(err error) error {
 // Usage: docker run [OPTIONS] IMAGE [COMMAND] [ARG...]
 func (cli *DockerCli) CmdRun(args ...string) error {
 	cmd := Cli.Subcmd("run", []string{"IMAGE [COMMAND] [ARG...]"}, Cli.DockerCommands["run"].Description, true)
-	addTrustedFlags(cmd, true)
 
 	// These are flags not stored in Config/HostConfig
 	var (

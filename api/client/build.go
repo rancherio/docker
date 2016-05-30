@@ -2,7 +2,6 @@ package client
 
 import (
 	"archive/tar"
-	"bufio"
 	"bytes"
 	"fmt"
 	"io"
@@ -13,7 +12,6 @@ import (
 
 	"golang.org/x/net/context"
 
-	"github.com/docker/docker/api"
 	"github.com/docker/docker/builder"
 	"github.com/docker/docker/builder/dockerignore"
 	Cli "github.com/docker/docker/cli"
@@ -70,9 +68,6 @@ func (cli *DockerCli) CmdBuild(args ...string) error {
 	cmd.Var(flUlimits, []string{"-ulimit"}, "Ulimit options")
 
 	cmd.Require(flag.Exact, 1)
-
-	// For trusted pull on "FROM <image>" instruction.
-	addTrustedFlags(cmd, true)
 
 	cmd.ParseFlags(args, true)
 
@@ -169,13 +164,6 @@ func (cli *DockerCli) CmdBuild(args ...string) error {
 		}
 	}
 
-	var resolvedTags []*resolvedTag
-	if isTrusted() {
-		// Wrap the tar archive to replace the Dockerfile entry with the rewritten
-		// Dockerfile which uses trusted pulls.
-		ctx = replaceDockerfileTarWrapper(ctx, relDockerfile, cli.trustedReference, &resolvedTags)
-	}
-
 	// Setup an upload progress bar
 	progressOutput := streamformatter.NewStreamFormatter().NewProgressOutput(progBuff, true)
 
@@ -268,16 +256,6 @@ func (cli *DockerCli) CmdBuild(args ...string) error {
 		fmt.Fprintf(cli.out, "%s", buildBuff)
 	}
 
-	if isTrusted() {
-		// Since the build was successful, now we must tag any of the resolved
-		// images from the above Dockerfile rewrite.
-		for _, resolved := range resolvedTags {
-			if err := cli.tagTrusted(resolved.digestRef, resolved.tagRef); err != nil {
-				return err
-			}
-		}
-	}
-
 	return nil
 }
 
@@ -298,49 +276,6 @@ var dockerfileFromLinePattern = regexp.MustCompile(`(?i)^[\s]*FROM[ \f\r\t\v]+(?
 type resolvedTag struct {
 	digestRef reference.Canonical
 	tagRef    reference.NamedTagged
-}
-
-// rewriteDockerfileFrom rewrites the given Dockerfile by resolving images in
-// "FROM <image>" instructions to a digest reference. `translator` is a
-// function that takes a repository name and tag reference and returns a
-// trusted digest reference.
-func rewriteDockerfileFrom(dockerfile io.Reader, translator translatorFunc) (newDockerfile []byte, resolvedTags []*resolvedTag, err error) {
-	scanner := bufio.NewScanner(dockerfile)
-	buf := bytes.NewBuffer(nil)
-
-	// Scan the lines of the Dockerfile, looking for a "FROM" line.
-	for scanner.Scan() {
-		line := scanner.Text()
-
-		matches := dockerfileFromLinePattern.FindStringSubmatch(line)
-		if matches != nil && matches[1] != api.NoBaseImageSpecifier {
-			// Replace the line with a resolved "FROM repo@digest"
-			ref, err := reference.ParseNamed(matches[1])
-			if err != nil {
-				return nil, nil, err
-			}
-			ref = reference.WithDefaultTag(ref)
-			if ref, ok := ref.(reference.NamedTagged); ok && isTrusted() {
-				trustedRef, err := translator(ref)
-				if err != nil {
-					return nil, nil, err
-				}
-
-				line = dockerfileFromLinePattern.ReplaceAllLiteralString(line, fmt.Sprintf("FROM %s", trustedRef.String()))
-				resolvedTags = append(resolvedTags, &resolvedTag{
-					digestRef: trustedRef,
-					tagRef:    ref,
-				})
-			}
-		}
-
-		_, err := fmt.Fprintln(buf, line)
-		if err != nil {
-			return nil, nil, err
-		}
-	}
-
-	return buf.Bytes(), resolvedTags, scanner.Err()
 }
 
 // replaceDockerfileTarWrapper wraps the given input tar archive stream and
@@ -369,19 +304,6 @@ func replaceDockerfileTarWrapper(inputTarStream io.ReadCloser, dockerfileName st
 			}
 
 			var content io.Reader = tarReader
-			if hdr.Name == dockerfileName {
-				// This entry is the Dockerfile. Since the tar archive was
-				// generated from a directory on the local filesystem, the
-				// Dockerfile will only appear once in the archive.
-				var newDockerfile []byte
-				newDockerfile, *resolvedTags, err = rewriteDockerfileFrom(content, translator)
-				if err != nil {
-					pipeWriter.CloseWithError(err)
-					return
-				}
-				hdr.Size = int64(len(newDockerfile))
-				content = bytes.NewBuffer(newDockerfile)
-			}
 
 			if err := tarWriter.WriteHeader(hdr); err != nil {
 				pipeWriter.CloseWithError(err)
