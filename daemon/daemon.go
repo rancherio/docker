@@ -68,8 +68,6 @@ import (
 	"github.com/docker/docker/volume/local"
 	"github.com/docker/docker/volume/store"
 	"github.com/docker/go-connections/nat"
-	"github.com/docker/libnetwork"
-	nwconfig "github.com/docker/libnetwork/config"
 	"github.com/docker/libtrust"
 	"golang.org/x/net/context"
 )
@@ -116,7 +114,6 @@ type Daemon struct {
 	defaultLogConfig          containertypes.LogConfig
 	RegistryService           *registry.Service
 	EventsService             *events.Events
-	netController             libnetwork.NetworkController
 	volumes                   *store.VolumeStore
 	root                      string
 	seccompEnabled            bool
@@ -368,7 +365,6 @@ func (daemon *Daemon) restore() error {
 			}
 
 			// Make sure networks are available before starting
-			daemon.waitForNetworks(c)
 			if err := daemon.containerStart(c); err != nil {
 				logrus.Errorf("Failed to start container %s: %s", c.ID, err)
 			}
@@ -410,33 +406,6 @@ func (daemon *Daemon) restore() error {
 	}
 
 	return nil
-}
-
-// waitForNetworks is used during daemon initialization when starting up containers
-// It ensures that all of a container's networks are available before the daemon tries to start the container.
-// In practice it just makes sure the discovery service is available for containers which use a network that require discovery.
-func (daemon *Daemon) waitForNetworks(c *container.Container) {
-	if daemon.discoveryWatcher == nil {
-		return
-	}
-	// Make sure if the container has a network that requires discovery that the discovery service is available before starting
-	for netName := range c.NetworkSettings.Networks {
-		// If we get `ErrNoSuchNetwork` here, it can assumed that it is due to discovery not being ready
-		// Most likely this is because the K/V store used for discovery is in a container and needs to be started
-		if _, err := daemon.netController.NetworkByName(netName); err != nil {
-			if _, ok := err.(libnetwork.ErrNoSuchNetwork); !ok {
-				continue
-			}
-			// use a longish timeout here due to some slowdowns in libnetwork if the k/v store is on anything other than --net=host
-			// FIXME: why is this slow???
-			logrus.Debugf("Container %s waiting for network to be ready", c.Name)
-			select {
-			case <-daemon.discoveryWatcher.ReadyCh():
-			case <-time.After(60 * time.Second):
-			}
-			return
-		}
-	}
 }
 
 func (daemon *Daemon) mergeAndVerifyConfig(config *containertypes.Config, img *image.Image) error {
@@ -908,11 +877,6 @@ func (daemon *Daemon) Shutdown() error {
 			}
 			logrus.Debugf("container stopped %s", c.ID)
 		})
-	}
-
-	// trigger libnetwork Stop only if it's initialized
-	if daemon.netController != nil {
-		daemon.netController.Stop()
 	}
 
 	if daemon.layerStore != nil {
@@ -1553,39 +1517,6 @@ func (daemon *Daemon) GetContainerStats(container *container.Container) (*types.
 		return nil, err
 	}
 
-	if stats.Networks, err = daemon.getNetworkStats(container); err != nil {
-		return nil, err
-	}
-
-	return stats, nil
-}
-
-func (daemon *Daemon) getNetworkStats(c *container.Container) (map[string]types.NetworkStats, error) {
-	sb, err := daemon.netController.SandboxByID(c.NetworkSettings.SandboxID)
-	if err != nil {
-		return nil, err
-	}
-
-	lnstats, err := sb.Statistics()
-	if err != nil {
-		return nil, err
-	}
-
-	stats := make(map[string]types.NetworkStats)
-	// Convert libnetwork nw stats into engine-api stats
-	for ifName, ifStats := range lnstats {
-		stats[ifName] = types.NetworkStats{
-			RxBytes:   ifStats.RxBytes,
-			RxPackets: ifStats.RxPackets,
-			RxErrors:  ifStats.RxErrors,
-			RxDropped: ifStats.RxDropped,
-			TxBytes:   ifStats.TxBytes,
-			TxPackets: ifStats.TxPackets,
-			TxErrors:  ifStats.TxErrors,
-			TxDropped: ifStats.TxDropped,
-		}
-	}
-
 	return stats, nil
 }
 
@@ -1621,44 +1552,6 @@ func validateID(id string) error {
 
 func isBridgeNetworkDisabled(config *Config) bool {
 	return config.bridgeConfig.Iface == disableNetworkBridge
-}
-
-func (daemon *Daemon) networkOptions(dconfig *Config) ([]nwconfig.Option, error) {
-	options := []nwconfig.Option{}
-	if dconfig == nil {
-		return options, nil
-	}
-
-	options = append(options, nwconfig.OptionDataDir(dconfig.Root))
-
-	dd := runconfig.DefaultDaemonNetworkMode()
-	dn := runconfig.DefaultDaemonNetworkMode().NetworkName()
-	options = append(options, nwconfig.OptionDefaultDriver(string(dd)))
-	options = append(options, nwconfig.OptionDefaultNetwork(dn))
-
-	if strings.TrimSpace(dconfig.ClusterStore) != "" {
-		kv := strings.Split(dconfig.ClusterStore, "://")
-		if len(kv) != 2 {
-			return nil, fmt.Errorf("kv store daemon config must be of the form KV-PROVIDER://KV-URL")
-		}
-		options = append(options, nwconfig.OptionKVProvider(kv[0]))
-		options = append(options, nwconfig.OptionKVProviderURL(kv[1]))
-	}
-	if len(dconfig.ClusterOpts) > 0 {
-		options = append(options, nwconfig.OptionKVOpts(dconfig.ClusterOpts))
-	}
-
-	if daemon.discoveryWatcher != nil {
-		options = append(options, nwconfig.OptionDiscoveryWatcher(daemon.discoveryWatcher))
-	}
-
-	if dconfig.ClusterAdvertise != "" {
-		options = append(options, nwconfig.OptionDiscoveryAddress(dconfig.ClusterAdvertise))
-	}
-
-	options = append(options, nwconfig.OptionLabels(dconfig.Labels))
-	options = append(options, driverOptions(dconfig)...)
-	return options, nil
 }
 
 func copyBlkioEntry(entries []*containerd.BlkioStatsEntry) []types.BlkioStatEntry {

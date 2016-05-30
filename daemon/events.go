@@ -5,7 +5,6 @@ import (
 
 	"github.com/docker/docker/container"
 	"github.com/docker/engine-api/types/events"
-	"github.com/docker/libnetwork"
 )
 
 // LogContainerEvent generates an event related to a container with only the default attributes.
@@ -59,22 +58,6 @@ func (daemon *Daemon) LogVolumeEvent(volumeID, action string, attributes map[str
 		Attributes: attributes,
 	}
 	daemon.EventsService.Log(action, events.VolumeEventType, actor)
-}
-
-// LogNetworkEvent generates an event related to a network with only the default attributes.
-func (daemon *Daemon) LogNetworkEvent(nw libnetwork.Network, action string) {
-	daemon.LogNetworkEventWithAttributes(nw, action, map[string]string{})
-}
-
-// LogNetworkEventWithAttributes generates an event related to a network with specific given attributes.
-func (daemon *Daemon) LogNetworkEventWithAttributes(nw libnetwork.Network, action string, attributes map[string]string) {
-	attributes["name"] = nw.Name()
-	attributes["type"] = nw.Type()
-	actor := events.Actor{
-		ID:         nw.ID(),
-		Attributes: attributes,
-	}
-	daemon.EventsService.Log(action, events.NetworkEventType, actor)
 }
 
 // copyAttributes guarantees that labels are not mutated by event triggers.

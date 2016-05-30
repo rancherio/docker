@@ -16,7 +16,6 @@ import (
 	"github.com/docker/docker/pkg/signal"
 	runconfigopts "github.com/docker/docker/runconfig/opts"
 	"github.com/docker/engine-api/types"
-	"github.com/docker/libnetwork/resolvconf/dns"
 )
 
 const (
@@ -94,17 +93,6 @@ func (cli *DockerCli) CmdRun(args ...string) error {
 		fmt.Fprintf(cli.err, "WARNING: Disabling the OOM killer on containers without setting a '-m/--memory' limit may be dangerous.\n")
 	}
 
-	if len(hostConfig.DNS) > 0 {
-		// check the DNS settings passed via --dns against
-		// localhost regexp to warn if they are trying to
-		// set a DNS to a localhost address
-		for _, dnsIP := range hostConfig.DNS {
-			if dns.IsLocalhost(dnsIP) {
-				fmt.Fprintf(cli.err, "WARNING: Localhost DNS setting (--dns=%s) may fail in containers.\n", dnsIP)
-				break
-			}
-		}
-	}
 	if config.Image == "" {
 		cmd.Usage()
 		return nil

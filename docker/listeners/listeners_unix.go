@@ -11,7 +11,6 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/coreos/go-systemd/activation"
 	"github.com/docker/go-connections/sockets"
-	"github.com/docker/libnetwork/portallocator"
 )
 
 // Init creates new listeners for the server.
@@ -87,33 +86,4 @@ func listenFD(addr string, tlsConfig *tls.Config) ([]net.Listener, error) {
 		}
 	}
 	return []net.Listener{listeners[fdOffset]}, nil
-}
-
-// allocateDaemonPort ensures that there are no containers
-// that try to use any port allocated for the docker server.
-func allocateDaemonPort(addr string) error {
-	host, port, err := net.SplitHostPort(addr)
-	if err != nil {
-		return err
-	}
-
-	intPort, err := strconv.Atoi(port)
-	if err != nil {
-		return err
-	}
-
-	var hostIPs []net.IP
-	if parsedIP := net.ParseIP(host); parsedIP != nil {
-		hostIPs = append(hostIPs, parsedIP)
-	} else if hostIPs, err = net.LookupIP(host); err != nil {
-		return fmt.Errorf("failed to lookup %s address in host specification", host)
-	}
-
-	pa := portallocator.Get()
-	for _, hostIP := range hostIPs {
-		if _, err := pa.RequestPort(hostIP, "tcp", intPort); err != nil {
-			return fmt.Errorf("failed to allocate daemon listening port %d (err: %v)", intPort, err)
-		}
-	}
-	return nil
 }

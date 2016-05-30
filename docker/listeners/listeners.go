@@ -15,8 +15,5 @@ func initTCPSocket(addr string, tlsConfig *tls.Config) (l net.Listener, err erro
 	if l, err = sockets.NewTCPSocket(addr, tlsConfig); err != nil {
 		return nil, err
 	}
-	if err := allocateDaemonPort(addr); err != nil {
-		return nil, err
-	}
 	return
 }

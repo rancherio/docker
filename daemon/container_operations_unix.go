@@ -20,8 +20,6 @@ import (
 	"github.com/docker/docker/pkg/stringid"
 	"github.com/docker/docker/runconfig"
 	containertypes "github.com/docker/engine-api/types/container"
-	networktypes "github.com/docker/engine-api/types/network"
-	"github.com/docker/libnetwork"
 	"github.com/opencontainers/runc/libcontainer/configs"
 	"github.com/opencontainers/runc/libcontainer/devices"
 	"github.com/opencontainers/runc/libcontainer/label"
@@ -97,74 +95,6 @@ func (daemon *Daemon) getSize(container *container.Container) (int64, int64) {
 		}
 	}
 	return sizeRw, sizeRootfs
-}
-
-// ConnectToNetwork connects a container to a network
-func (daemon *Daemon) ConnectToNetwork(container *container.Container, idOrName string, endpointConfig *networktypes.EndpointSettings) error {
-	if !container.Running {
-		if container.RemovalInProgress || container.Dead {
-			return errRemovalContainer(container.ID)
-		}
-		if _, err := daemon.updateNetworkConfig(container, idOrName, endpointConfig, true); err != nil {
-			return err
-		}
-		if endpointConfig != nil {
-			container.NetworkSettings.Networks[idOrName] = endpointConfig
-		}
-	} else {
-		if err := daemon.connectToNetwork(container, idOrName, endpointConfig, true); err != nil {
-			return err
-		}
-	}
-	if err := container.ToDiskLocking(); err != nil {
-		return fmt.Errorf("Error saving container to disk: %v", err)
-	}
-	return nil
-}
-
-// DisconnectFromNetwork disconnects container from network n.
-func (daemon *Daemon) DisconnectFromNetwork(container *container.Container, n libnetwork.Network, force bool) error {
-	if container.HostConfig.NetworkMode.IsHost() && containertypes.NetworkMode(n.Type()).IsHost() {
-		return runconfig.ErrConflictHostNetwork
-	}
-	if !container.Running {
-		if container.RemovalInProgress || container.Dead {
-			return errRemovalContainer(container.ID)
-		}
-		if _, ok := container.NetworkSettings.Networks[n.Name()]; ok {
-			delete(container.NetworkSettings.Networks, n.Name())
-		} else {
-			return fmt.Errorf("container %s is not connected to the network %s", container.ID, n.Name())
-		}
-	} else {
-		if err := disconnectFromNetwork(container, n, false); err != nil {
-			return err
-		}
-	}
-
-	if err := container.ToDiskLocking(); err != nil {
-		return fmt.Errorf("Error saving container to disk: %v", err)
-	}
-
-	attributes := map[string]string{
-		"container": container.ID,
-	}
-	daemon.LogNetworkEventWithAttributes(n, "disconnect", attributes)
-	return nil
-}
-
-// called from the libcontainer pre-start hook to set the network
-// namespace configuration linkage to the libnetwork "sandbox" entity
-func (daemon *Daemon) setNetworkNamespaceKey(containerID string, pid int) error {
-	path := fmt.Sprintf("/proc/%d/ns/net", pid)
-	var sandbox libnetwork.Sandbox
-	search := libnetwork.SandboxContainerWalker(&sandbox, containerID)
-	daemon.netController.WalkSandboxes(search)
-	if sandbox == nil {
-		return fmt.Errorf("error locating sandbox id %s: no sandbox found", containerID)
-	}
-
-	return sandbox.SetKey(path)
 }
 
 func (daemon *Daemon) getIpcContainer(container *container.Container) (*container.Container, error) {

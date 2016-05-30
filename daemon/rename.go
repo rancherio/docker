@@ -2,21 +2,14 @@ package daemon
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/docker/libnetwork"
 )
 
 // ContainerRename changes the name of a container, using the oldName
 // to find the container. An error is returned if newName is already
 // reserved.
 func (daemon *Daemon) ContainerRename(oldName, newName string) error {
-	var (
-		sid string
-		sb  libnetwork.Sandbox
-	)
-
 	if oldName == "" || newName == "" {
 		return fmt.Errorf("Neither old nor new names may be empty")
 	}
@@ -66,19 +59,6 @@ func (daemon *Daemon) ContainerRename(oldName, newName string) error {
 			}
 		}
 	}()
-
-	sid = container.NetworkSettings.SandboxID
-	if daemon.netController != nil {
-		sb, err = daemon.netController.SandboxByID(sid)
-		if err != nil {
-			return err
-		}
-
-		err = sb.Rename(strings.TrimPrefix(container.Name, "/"))
-		if err != nil {
-			return err
-		}
-	}
 
 	daemon.LogContainerEventWithAttributes(container, "rename", attributes)
 	return nil

@@ -5,7 +5,6 @@ package daemon
 import (
 	"fmt"
 	"io/ioutil"
-	"net"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -29,13 +28,6 @@ import (
 	"github.com/docker/engine-api/types"
 	pblkiodev "github.com/docker/engine-api/types/blkiodev"
 	containertypes "github.com/docker/engine-api/types/container"
-	"github.com/docker/libnetwork"
-	nwconfig "github.com/docker/libnetwork/config"
-	"github.com/docker/libnetwork/drivers/bridge"
-	"github.com/docker/libnetwork/ipamutils"
-	"github.com/docker/libnetwork/netlabel"
-	"github.com/docker/libnetwork/options"
-	lntypes "github.com/docker/libnetwork/types"
 	"github.com/opencontainers/runc/libcontainer/label"
 	"github.com/opencontainers/runc/libcontainer/user"
 	"github.com/opencontainers/specs/specs-go"
@@ -612,169 +604,6 @@ func configureKernelSecuritySupport(config *Config, driverName string) error {
 		}
 	} else {
 		selinuxSetDisabled()
-	}
-	return nil
-}
-
-func (daemon *Daemon) initNetworkController(config *Config) (libnetwork.NetworkController, error) {
-	netOptions, err := daemon.networkOptions(config)
-	if err != nil {
-		return nil, err
-	}
-
-	controller, err := libnetwork.New(netOptions...)
-	if err != nil {
-		return nil, fmt.Errorf("error obtaining controller instance: %v", err)
-	}
-
-	// Initialize default network on "null"
-	if _, err := controller.NewNetwork("null", "none", libnetwork.NetworkOptionPersist(false)); err != nil {
-		return nil, fmt.Errorf("Error creating default \"null\" network: %v", err)
-	}
-
-	// Initialize default network on "host"
-	if _, err := controller.NewNetwork("host", "host", libnetwork.NetworkOptionPersist(false)); err != nil {
-		return nil, fmt.Errorf("Error creating default \"host\" network: %v", err)
-	}
-
-	if !config.DisableBridge {
-		// Initialize default driver "bridge"
-		if err := initBridgeDriver(controller, config); err != nil {
-			return nil, err
-		}
-	}
-
-	return controller, nil
-}
-
-func driverOptions(config *Config) []nwconfig.Option {
-	bridgeConfig := options.Generic{
-		"EnableIPForwarding":  config.bridgeConfig.EnableIPForward,
-		"EnableIPTables":      config.bridgeConfig.EnableIPTables,
-		"EnableUserlandProxy": config.bridgeConfig.EnableUserlandProxy}
-	bridgeOption := options.Generic{netlabel.GenericData: bridgeConfig}
-
-	dOptions := []nwconfig.Option{}
-	dOptions = append(dOptions, nwconfig.OptionDriverConfig("bridge", bridgeOption))
-	return dOptions
-}
-
-func initBridgeDriver(controller libnetwork.NetworkController, config *Config) error {
-	if n, err := controller.NetworkByName("bridge"); err == nil {
-		if err = n.Delete(); err != nil {
-			return fmt.Errorf("could not delete the default bridge network: %v", err)
-		}
-	}
-
-	bridgeName := bridge.DefaultBridgeName
-	if config.bridgeConfig.Iface != "" {
-		bridgeName = config.bridgeConfig.Iface
-	}
-	netOption := map[string]string{
-		bridge.BridgeName:         bridgeName,
-		bridge.DefaultBridge:      strconv.FormatBool(true),
-		netlabel.DriverMTU:        strconv.Itoa(config.Mtu),
-		bridge.EnableIPMasquerade: strconv.FormatBool(config.bridgeConfig.EnableIPMasq),
-		bridge.EnableICC:          strconv.FormatBool(config.bridgeConfig.InterContainerCommunication),
-	}
-
-	// --ip processing
-	if config.bridgeConfig.DefaultIP != nil {
-		netOption[bridge.DefaultBindingIP] = config.bridgeConfig.DefaultIP.String()
-	}
-
-	var (
-		ipamV4Conf *libnetwork.IpamConf
-		ipamV6Conf *libnetwork.IpamConf
-	)
-
-	ipamV4Conf = &libnetwork.IpamConf{AuxAddresses: make(map[string]string)}
-
-	nw, nw6List, err := ipamutils.ElectInterfaceAddresses(bridgeName)
-	if err == nil {
-		ipamV4Conf.PreferredPool = lntypes.GetIPNetCanonical(nw).String()
-		hip, _ := lntypes.GetHostPartIP(nw.IP, nw.Mask)
-		if hip.IsGlobalUnicast() {
-			ipamV4Conf.Gateway = nw.IP.String()
-		}
-	}
-
-	if config.bridgeConfig.IP != "" {
-		ipamV4Conf.PreferredPool = config.bridgeConfig.IP
-		ip, _, err := net.ParseCIDR(config.bridgeConfig.IP)
-		if err != nil {
-			return err
-		}
-		ipamV4Conf.Gateway = ip.String()
-	} else if bridgeName == bridge.DefaultBridgeName && ipamV4Conf.PreferredPool != "" {
-		logrus.Infof("Default bridge (%s) is assigned with an IP address %s. Daemon option --bip can be used to set a preferred IP address", bridgeName, ipamV4Conf.PreferredPool)
-	}
-
-	if config.bridgeConfig.FixedCIDR != "" {
-		_, fCIDR, err := net.ParseCIDR(config.bridgeConfig.FixedCIDR)
-		if err != nil {
-			return err
-		}
-
-		ipamV4Conf.SubPool = fCIDR.String()
-	}
-
-	if config.bridgeConfig.DefaultGatewayIPv4 != nil {
-		ipamV4Conf.AuxAddresses["DefaultGatewayIPv4"] = config.bridgeConfig.DefaultGatewayIPv4.String()
-	}
-
-	var deferIPv6Alloc bool
-	if config.bridgeConfig.FixedCIDRv6 != "" {
-		_, fCIDRv6, err := net.ParseCIDR(config.bridgeConfig.FixedCIDRv6)
-		if err != nil {
-			return err
-		}
-
-		// In case user has specified the daemon flag --fixed-cidr-v6 and the passed network has
-		// at least 48 host bits, we need to guarantee the current behavior where the containers'
-		// IPv6 addresses will be constructed based on the containers' interface MAC address.
-		// We do so by telling libnetwork to defer the IPv6 address allocation for the endpoints
-		// on this network until after the driver has created the endpoint and returned the
-		// constructed address. Libnetwork will then reserve this address with the ipam driver.
-		ones, _ := fCIDRv6.Mask.Size()
-		deferIPv6Alloc = ones <= 80
-
-		if ipamV6Conf == nil {
-			ipamV6Conf = &libnetwork.IpamConf{AuxAddresses: make(map[string]string)}
-		}
-		ipamV6Conf.PreferredPool = fCIDRv6.String()
-
-		// In case the --fixed-cidr-v6 is specified and the current docker0 bridge IPv6
-		// address belongs to the same network, we need to inform libnetwork about it, so
-		// that it can be reserved with IPAM and it will not be given away to somebody else
-		for _, nw6 := range nw6List {
-			if fCIDRv6.Contains(nw6.IP) {
-				ipamV6Conf.Gateway = nw6.IP.String()
-				break
-			}
-		}
-	}
-
-	if config.bridgeConfig.DefaultGatewayIPv6 != nil {
-		if ipamV6Conf == nil {
-			ipamV6Conf = &libnetwork.IpamConf{AuxAddresses: make(map[string]string)}
-		}
-		ipamV6Conf.AuxAddresses["DefaultGatewayIPv6"] = config.bridgeConfig.DefaultGatewayIPv6.String()
-	}
-
-	v4Conf := []*libnetwork.IpamConf{ipamV4Conf}
-	v6Conf := []*libnetwork.IpamConf{}
-	if ipamV6Conf != nil {
-		v6Conf = append(v6Conf, ipamV6Conf)
-	}
-	// Initialize default network on "bridge" with the same name
-	_, err = controller.NewNetwork("bridge", "bridge",
-		libnetwork.NetworkOptionEnableIPv6(config.bridgeConfig.EnableIPv6),
-		libnetwork.NetworkOptionDriverOpts(netOption),
-		libnetwork.NetworkOptionIpam("default", "", v4Conf, v6Conf, nil),
-		libnetwork.NetworkOptionDeferIPv6Alloc(deferIPv6Alloc))
-	if err != nil {
-		return fmt.Errorf("Error creating default \"bridge\" network: %v", err)
 	}
 	return nil
 }
