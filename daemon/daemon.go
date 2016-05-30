@@ -118,7 +118,6 @@ type Daemon struct {
 	EventsService             *events.Events
 	netController             libnetwork.NetworkController
 	volumes                   *store.VolumeStore
-	discoveryWatcher          discoveryReloader
 	root                      string
 	seccompEnabled            bool
 	shutdown                  bool
@@ -805,17 +804,6 @@ func NewDaemon(config *Config, registryService *registry.Service, containerdRemo
 		logrus.Errorf("Graph migration failed: %q. Your old graph data was found to be too inconsistent for upgrading to content-addressable storage. Some of the old data was probably not upgraded. We recommend starting over with a clean storage directory if possible.", err)
 	}
 	logrus.Infof("Graph migration to content-addressability took %.2f seconds", time.Since(migrationStart).Seconds())
-
-	// Discovery is only enabled when the daemon is launched with an address to advertise.  When
-	// initialized, the daemon is registered and we can store the discovery backend as its read-only
-	if err := d.initDiscovery(config); err != nil {
-		return nil, err
-	}
-
-	d.netController, err = d.initNetworkController(config)
-	if err != nil {
-		return nil, fmt.Errorf("Error initializing network controller: %v", err)
-	}
 
 	sysInfo := sysinfo.New(false)
 	// Check if Devices cgroup is mounted, it is hard requirement for container security,
@@ -1607,26 +1595,6 @@ func (daemon *Daemon) newBaseContainer(id string) *container.Container {
 	return container.NewBaseContainer(id, daemon.containerRoot(id))
 }
 
-// initDiscovery initializes the discovery watcher for this daemon.
-func (daemon *Daemon) initDiscovery(config *Config) error {
-	advertise, err := parseClusterAdvertiseSettings(config.ClusterStore, config.ClusterAdvertise)
-	if err != nil {
-		if err == errDiscoveryDisabled {
-			return nil
-		}
-		return err
-	}
-
-	config.ClusterAdvertise = advertise
-	discoveryWatcher, err := initDiscovery(config.ClusterStore, config.ClusterAdvertise, config.ClusterOpts)
-	if err != nil {
-		return fmt.Errorf("discovery initialization failed (%v)", err)
-	}
-
-	daemon.discoveryWatcher = discoveryWatcher
-	return nil
-}
-
 // Reload reads configuration changes and modifies the
 // daemon according to those changes.
 // This are the settings that Reload changes:
@@ -1641,64 +1609,6 @@ func (daemon *Daemon) Reload(config *Config) error {
 	if config.IsValueSet("debug") {
 		daemon.configStore.Debug = config.Debug
 	}
-	return daemon.reloadClusterDiscovery(config)
-}
-
-func (daemon *Daemon) reloadClusterDiscovery(config *Config) error {
-	var err error
-	newAdvertise := daemon.configStore.ClusterAdvertise
-	newClusterStore := daemon.configStore.ClusterStore
-	if config.IsValueSet("cluster-advertise") {
-		if config.IsValueSet("cluster-store") {
-			newClusterStore = config.ClusterStore
-		}
-		newAdvertise, err = parseClusterAdvertiseSettings(newClusterStore, config.ClusterAdvertise)
-		if err != nil && err != errDiscoveryDisabled {
-			return err
-		}
-	}
-
-	// check discovery modifications
-	if !modifiedDiscoverySettings(daemon.configStore, newAdvertise, newClusterStore, config.ClusterOpts) {
-		return nil
-	}
-
-	// enable discovery for the first time if it was not previously enabled
-	if daemon.discoveryWatcher == nil {
-		discoveryWatcher, err := initDiscovery(newClusterStore, newAdvertise, config.ClusterOpts)
-		if err != nil {
-			return fmt.Errorf("discovery initialization failed (%v)", err)
-		}
-		daemon.discoveryWatcher = discoveryWatcher
-	} else {
-		if err == errDiscoveryDisabled {
-			// disable discovery if it was previously enabled and it's disabled now
-			daemon.discoveryWatcher.Stop()
-		} else {
-			// reload discovery
-			if err = daemon.discoveryWatcher.Reload(config.ClusterStore, newAdvertise, config.ClusterOpts); err != nil {
-				return err
-			}
-		}
-	}
-
-	daemon.configStore.ClusterStore = newClusterStore
-	daemon.configStore.ClusterOpts = config.ClusterOpts
-	daemon.configStore.ClusterAdvertise = newAdvertise
-
-	if daemon.netController == nil {
-		return nil
-	}
-	netOptions, err := daemon.networkOptions(daemon.configStore)
-	if err != nil {
-		logrus.Warnf("Failed to reload configuration with network controller: %v", err)
-		return nil
-	}
-	err = daemon.netController.ReloadConfiguration(netOptions...)
-	if err != nil {
-		logrus.Warnf("Failed to reload configuration with network controller: %v", err)
-	}
-
 	return nil
 }
 

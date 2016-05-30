@@ -11,7 +11,6 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/docker/docker/opts"
-	"github.com/docker/docker/pkg/discovery"
 	flag "github.com/docker/docker/pkg/mflag"
 	"github.com/docker/docker/registry"
 	"github.com/imdario/mergo"
@@ -140,21 +139,6 @@ func (config *Config) IsValueSet(name string) bool {
 	}
 	_, ok := config.valuesSet[name]
 	return ok
-}
-
-func parseClusterAdvertiseSettings(clusterStore, clusterAdvertise string) (string, error) {
-	if clusterAdvertise == "" {
-		return "", errDiscoveryDisabled
-	}
-	if clusterStore == "" {
-		return "", fmt.Errorf("invalid cluster configuration. --cluster-advertise must be accompanied by --cluster-store configuration")
-	}
-
-	advertise, err := discovery.ParseAdvertise(clusterAdvertise)
-	if err != nil {
-		return "", fmt.Errorf("discovery advertise parsing failed (%v)", err)
-	}
-	return advertise, nil
 }
 
 // ReloadConfiguration reads the configuration in the host and reloads the daemon and server.
