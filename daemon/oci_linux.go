@@ -5,7 +5,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	"github.com/Sirupsen/logrus"
@@ -269,7 +268,7 @@ func setNamespaces(daemon *Daemon, s *specs.Spec, c *container.Container) error 
 				setNamespace(s, nsUser)
 			}
 		} else if c.HostConfig.NetworkMode.IsHost() {
-			ns.Path = c.NetworkSettings.SandboxKey
+			ns.Path = fmt.Sprintf("/proc/%d/ns/net", os.Getpid())
 		}
 		setNamespace(s, ns)
 	}
@@ -644,21 +643,21 @@ func (daemon *Daemon) createSpec(c *container.Container) (*libcontainerd.Spec, e
 		return nil, fmt.Errorf("linux mounts: %v", err)
 	}
 
-	for _, ns := range s.Linux.Namespaces {
-		if ns.Type == "network" && ns.Path == "" && !c.Config.NetworkDisabled {
-			target, err := os.Readlink(filepath.Join("/proc", strconv.Itoa(os.Getpid()), "exe"))
-			if err != nil {
-				return nil, err
-			}
+	//for _, ns := range s.Linux.Namespaces {
+	//	if ns.Type == "network" && ns.Path == "" && !c.Config.NetworkDisabled {
+	//		target, err := os.Readlink(filepath.Join("/proc", strconv.Itoa(os.Getpid()), "exe"))
+	//		if err != nil {
+	//			return nil, err
+	//		}
 
-			s.Hooks = specs.Hooks{
-				Prestart: []specs.Hook{{
-					Path: target, // FIXME: cross-platform
-					Args: []string{"libnetwork-setkey", c.ID, daemon.netController.ID()},
-				}},
-			}
-		}
-	}
+	//		s.Hooks = specs.Hooks{
+	//			Prestart: []specs.Hook{{
+	//				Path: target, // FIXME: cross-platform
+	//				Args: []string{"libnetwork-setkey", c.ID},
+	//			}},
+	//		}
+	//	}
+	//}
 
 	if apparmor.IsEnabled() {
 		appArmorProfile := "docker-default"
