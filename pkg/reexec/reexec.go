@@ -3,8 +3,10 @@ package reexec
 import (
 	"fmt"
 	"os"
-	"github.com/docker/containerd/subreaper/exec"
+	"path"
 	"path/filepath"
+
+	"github.com/docker/containerd/subreaper/exec"
 )
 
 var registeredInitializers = make(map[string]func())
@@ -22,6 +24,9 @@ func Register(name string, initializer func()) {
 // initialization function was called.
 func Init() bool {
 	initializer, exists := registeredInitializers[os.Args[0]]
+	if !exists {
+		initializer, exists = registeredInitializers[path.Base(os.Args[0])]
+	}
 	if exists {
 		initializer()
 
