@@ -46,10 +46,8 @@ import (
 	"github.com/docker/docker/image/tarexport"
 	"github.com/docker/docker/layer"
 	"github.com/docker/docker/libcontainerd"
-	"github.com/docker/docker/migrate/v1"
 	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/docker/pkg/fileutils"
-	"github.com/docker/docker/pkg/graphdb"
 	"github.com/docker/docker/pkg/idtools"
 	"github.com/docker/docker/pkg/namesgenerator"
 	"github.com/docker/docker/pkg/progress"
@@ -274,7 +272,6 @@ func (daemon *Daemon) restore() error {
 		}
 	}
 
-	var migrateLegacyLinks bool
 	restartContainers := make(map[*container.Container]chan struct{})
 	for _, c := range containers {
 		if err := daemon.registerName(c); err != nil {
@@ -310,33 +307,12 @@ func (daemon *Daemon) restore() error {
 				restartContainers[c] = make(chan struct{})
 				mapLock.Unlock()
 			}
-
-			// if c.hostConfig.Links is nil (not just empty), then it is using the old sqlite links and needs to be migrated
-			if c.HostConfig != nil && c.HostConfig.Links == nil {
-				migrateLegacyLinks = true
-			}
 		}(c)
 	}
 	wg.Wait()
 
-	// migrate any legacy links from sqlite
-	linkdbFile := filepath.Join(daemon.root, "linkgraph.db")
-	var legacyLinkDB *graphdb.Database
-	if migrateLegacyLinks {
-		legacyLinkDB, err = graphdb.NewSqliteConn(linkdbFile)
-		if err != nil {
-			return fmt.Errorf("error connecting to legacy link graph DB %s, container links may be lost: %v", linkdbFile, err)
-		}
-		defer legacyLinkDB.Close()
-	}
-
 	// Now that all the containers are registered, register the links
 	for _, c := range containers {
-		if migrateLegacyLinks {
-			if err := daemon.migrateLegacySqliteLinks(legacyLinkDB, c); err != nil {
-				return err
-			}
-		}
 		if err := daemon.registerLinks(c, c.HostConfig); err != nil {
 			logrus.Errorf("failed to register link for container %s: %v", c.ID, err)
 		}
@@ -767,12 +743,6 @@ func NewDaemon(config *Config, registryService *registry.Service, containerdRemo
 	if err := restoreCustomImage(d.imageStore, d.layerStore, referenceStore); err != nil {
 		return nil, fmt.Errorf("Couldn't restore custom images: %s", err)
 	}
-
-	migrationStart := time.Now()
-	if err := v1.Migrate(config.Root, graphDriver, d.layerStore, d.imageStore, referenceStore, distributionMetadataStore); err != nil {
-		logrus.Errorf("Graph migration failed: %q. Your old graph data was found to be too inconsistent for upgrading to content-addressable storage. Some of the old data was probably not upgraded. We recommend starting over with a clean storage directory if possible.", err)
-	}
-	logrus.Infof("Graph migration to content-addressability took %.2f seconds", time.Since(migrationStart).Seconds())
 
 	sysInfo := sysinfo.New(false)
 	// Check if Devices cgroup is mounted, it is hard requirement for container security,
