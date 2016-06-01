@@ -107,6 +107,11 @@ RUN set -x \
 		&& make \
 		&& make install \
 		&& ldconfig \
+		&&  for a in arm-linux-gnueabihf aarch64-linux-gnu; do \
+		      make distclean && \
+		      ./configure --prefix=/usr/$a --host=$a && \
+		      make && make install; \
+		    done \
 	) \
 	&& rm -rf "$SECCOMP_PATH"
 
@@ -197,8 +202,7 @@ RUN useradd --create-home --gid docker unprivilegeduser
 
 VOLUME /var/lib/docker
 WORKDIR /go/src/github.com/docker/docker
-ENV DOCKER_BUILDTAGS exclude_graphdriver_devicemapper pkcs11 selinux
-# TODO add seccomp to DOCKER_BUILDTAGS: requires cross-building seccomp for arm, arm64
+ENV DOCKER_BUILDTAGS exclude_graphdriver_devicemapper pkcs11 selinux seccomp
 
 # Let us use a .bashrc file
 RUN ln -sfv $PWD/.bashrc ~/.bashrc
@@ -249,9 +253,9 @@ RUN set -x \
 	&& git clone git://github.com/opencontainers/runc.git "$GOPATH/src/github.com/opencontainers/runc" \
 	&& cd "$GOPATH/src/github.com/opencontainers/runc" \
 	&& git checkout -q "$RUNC_COMMIT" \
-	&& GOARCH=arm CC=/usr/bin/arm-linux-gnueabihf-gcc make static BUILDTAGS="selinux" \
+	&& GOARCH=arm CC=/usr/bin/arm-linux-gnueabihf-gcc make static BUILDTAGS="seccomp selinux" \
 	&& cp runc /usr/local/bin/docker-runc_arm \
-	&& GOARCH=arm64 CC=/usr/bin/aarch64-linux-gnu-gcc make static BUILDTAGS="selinux" \
+	&& GOARCH=arm64 CC=/usr/bin/aarch64-linux-gnu-gcc make static BUILDTAGS="seccomp selinux" \
 	&& cp runc /usr/local/bin/docker-runc_arm64
 
 # Install containerd
