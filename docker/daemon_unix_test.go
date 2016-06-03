@@ -1,6 +1,6 @@
 // +build daemon,!windows
 
-package main
+package docker
 
 import (
 	"io/ioutil"

@@ -7,7 +7,7 @@ import (
 	"log"
 	"net"
 	"os"
-	"os/exec"
+	"github.com/docker/containerd/subreaper/exec"
 	"path/filepath"
 	"strconv"
 	"strings"

@@ -4,7 +4,7 @@ package daemon
 
 import (
 	"fmt"
-	"os/exec"
+	"github.com/docker/containerd/subreaper/exec"
 	"strconv"
 	"strings"
 

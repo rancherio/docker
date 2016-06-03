@@ -1,7 +1,7 @@
 package platform
 
 import (
-	"os/exec"
+	"github.com/docker/containerd/subreaper/exec"
 )
 
 // runtimeArchitecture get the name of the current architecture (x86, x86_64, …)

@@ -3,7 +3,7 @@
 package reexec
 
 import (
-	"os/exec"
+	"github.com/docker/containerd/subreaper/exec"
 	"syscall"
 )
 

@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
+	"github.com/docker/containerd/subreaper/exec"
 	"path/filepath"
 	"reflect"
 	"strings"

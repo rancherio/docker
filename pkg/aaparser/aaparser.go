@@ -3,7 +3,7 @@ package aaparser
 
 import (
 	"fmt"
-	"os/exec"
+	"github.com/docker/containerd/subreaper/exec"
 	"path/filepath"
 	"strconv"
 	"strings"

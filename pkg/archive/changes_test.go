@@ -3,7 +3,7 @@ package archive
 import (
 	"io/ioutil"
 	"os"
-	"os/exec"
+	"github.com/docker/containerd/subreaper/exec"
 	"path"
 	"runtime"
 	"sort"

@@ -2,7 +2,7 @@ package idtools
 
 import (
 	"fmt"
-	"os/exec"
+	"github.com/docker/containerd/subreaper/exec"
 	"path/filepath"
 	"regexp"
 	"sort"

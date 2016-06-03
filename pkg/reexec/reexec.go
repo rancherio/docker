@@ -3,7 +3,7 @@ package reexec
 import (
 	"fmt"
 	"os"
-	"os/exec"
+	"github.com/docker/containerd/subreaper/exec"
 	"path/filepath"
 )
 

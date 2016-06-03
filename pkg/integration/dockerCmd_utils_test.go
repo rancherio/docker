@@ -3,7 +3,7 @@ package integration
 import (
 	"fmt"
 	"os"
-	"os/exec"
+	"github.com/docker/containerd/subreaper/exec"
 	"testing"
 
 	"io/ioutil"

@@ -2,7 +2,7 @@ package integration
 
 import (
 	"fmt"
-	"os/exec"
+	"github.com/docker/containerd/subreaper/exec"
 	"strings"
 	"time"
 

@@ -11,7 +11,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"os/exec"
+	"github.com/docker/containerd/subreaper/exec"
 	"path/filepath"
 	"runtime"
 	"strings"

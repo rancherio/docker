@@ -1,7 +1,7 @@
 package credentials
 
 import (
-	"os/exec"
+	"github.com/docker/containerd/subreaper/exec"
 
 	"github.com/docker/docker/cliconfig"
 )

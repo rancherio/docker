@@ -2,7 +2,7 @@ package credentials
 
 import (
 	"io"
-	"os/exec"
+	"github.com/docker/containerd/subreaper/exec"
 )
 
 func shellCommandFn(storeName string) func(args ...string) command {
