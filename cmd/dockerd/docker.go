@@ -19,7 +19,7 @@ func newDaemonCommand() *cobra.Command {
 	opts := newDaemonOptions(config.New())
 
 	cmd := &cobra.Command{
-		Use:           "dockerd [OPTIONS]",
+		Use:           "system-dockerd [OPTIONS]",
 		Short:         "A self-sufficient runtime for containers.",
 		SilenceUsage:  true,
 		SilenceErrors: true,

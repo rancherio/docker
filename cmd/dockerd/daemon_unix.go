@@ -17,7 +17,7 @@ import (
 	"github.com/docker/libnetwork/portallocator"
 )
 
-const defaultDaemonConfigFile = "/etc/docker/daemon.json"
+const defaultDaemonConfigFile = "/etc/docker/system-docker.json"
 
 // setDefaultUmask sets the umask to 0022 to avoid problems
 // caused by custom umask

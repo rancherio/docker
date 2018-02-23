@@ -9,7 +9,7 @@ import (
 
 var (
 	configDir     = os.Getenv("DOCKER_CONFIG")
-	configFileDir = ".docker"
+	configFileDir = ".system-docker"
 )
 
 // Dir returns the path to the configuration directory as specified by the DOCKER_CONFIG environment variable.
