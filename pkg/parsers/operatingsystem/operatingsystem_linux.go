@@ -22,6 +22,9 @@ var (
 
 	// used by stateless systems like Clear Linux
 	altOsRelease = "/usr/lib/os-release"
+
+	// used by RancherOS
+	rosOsRelease = "/usr/share/ros/os-release"
 )
 
 // GetOperatingSystem gets the name of the current operating system.
@@ -34,6 +37,10 @@ func GetOperatingSystem() (string, error) {
 		osReleaseFile, err = os.Open(altOsRelease)
 		if err != nil {
 			return "", fmt.Errorf("Error opening %s: %v", altOsRelease, err)
+		}
+		osReleaseFile, err = os.Open(rosOsRelease)
+		if err != nil {
+			return "", fmt.Errorf("Error opening %s: %v", rosOsRelease, err)
 		}
 	}
 	defer osReleaseFile.Close()
