@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-const userlandProxyCommandName = "docker-proxy"
+const userlandProxyCommandName = "system-docker-proxy"
 
 type userlandProxy interface {
 	Start() error
