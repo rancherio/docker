@@ -35,12 +35,15 @@ func GetOperatingSystem() (string, error) {
 			return "", fmt.Errorf("Error opening %s: %v", etcOsRelease, err)
 		}
 		osReleaseFile, err = os.Open(altOsRelease)
-		if err != nil {
-			return "", fmt.Errorf("Error opening %s: %v", altOsRelease, err)
-		}
-		osReleaseFile, err = os.Open(rosOsRelease)
-		if err != nil {
-			return "", fmt.Errorf("Error opening %s: %v", rosOsRelease, err)
+		if os.IsNotExist(err) {
+			osReleaseFile, err = os.Open(rosOsRelease)
+			if err != nil {
+				return "", fmt.Errorf("Error opening %s: %v", rosOsRelease, err)
+			}
+		} else {
+			if err != nil {
+				return "", fmt.Errorf("Error opening %s: %v", altOsRelease, err)
+			}
 		}
 	}
 	defer osReleaseFile.Close()
