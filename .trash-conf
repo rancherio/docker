@@ -1,0 +1,502 @@
+imports:
+  cloud.google.com/go:
+    package: cloud.google.com/go
+    version: 9d965e63e8cceb1b5d7977a202f0fcb8866d6525
+    update: false
+    options: {}
+  github.com/Azure/go-ansiterm:
+    package: github.com/Azure/go-ansiterm
+    version: 388960b655244e76e24c75f48631564eaefade62
+    update: false
+    options: {}
+  github.com/BurntSushi/toml:
+    package: github.com/BurntSushi/toml
+    version: f706d00e3de6abe700c994cdd545a1a4915af060
+    update: false
+    options: {}
+  github.com/Graylog2/go-gelf:
+    package: github.com/Graylog2/go-gelf
+    version: 7029da823dad4ef3a876df61065156acb703b2ea
+    update: false
+    options: {}
+  github.com/Microsoft/go-winio:
+    package: github.com/Microsoft/go-winio
+    version: v0.4.2
+    update: false
+    options: {}
+  github.com/Microsoft/hcsshim:
+    package: github.com/Microsoft/hcsshim
+    version: v0.5.25
+    update: false
+    options: {}
+  github.com/Nvveen/Gotty:
+    package: github.com/Nvveen/Gotty
+    version: a8b993ba6abdb0e0c12b0125c603323a71c7790c
+    repo: https://github.com/ijc25/Gotty
+    update: false
+    options: {}
+  github.com/RackSec/srslog:
+    package: github.com/RackSec/srslog
+    version: 456df3a81436d29ba874f3590eeeee25d666f8a5
+    update: false
+    options: {}
+  github.com/Sirupsen/logrus:
+    package: github.com/Sirupsen/logrus
+    version: v0.11.0
+    update: false
+    options: {}
+  github.com/armon/go-metrics:
+    package: github.com/armon/go-metrics
+    version: eb0af217e5e9747e41dd5303755356b62d28e3ec
+    update: false
+    options: {}
+  github.com/armon/go-radix:
+    package: github.com/armon/go-radix
+    version: e39d623f12e8e41c7b5529e9a9dd67a1e2261f80
+    update: false
+    options: {}
+  github.com/aws/aws-sdk-go:
+    package: github.com/aws/aws-sdk-go
+    version: v1.4.22
+    update: false
+    options: {}
+  github.com/beorn7/perks:
+    package: github.com/beorn7/perks
+    version: 4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9
+    update: false
+    options: {}
+  github.com/boltdb/bolt:
+    package: github.com/boltdb/bolt
+    version: fff57c100f4dea1905678da7e90d92429dff2904
+    update: false
+    options: {}
+  github.com/bsphere/le_go:
+    package: github.com/bsphere/le_go
+    version: 7a984a84b5492ae539b79b62fb4a10afc63c7bcf
+    update: false
+    options: {}
+  github.com/cloudflare/cfssl:
+    package: github.com/cloudflare/cfssl
+    version: 7fb22c8cba7ecaf98e4082d22d65800cf45e042a
+    update: false
+    options: {}
+  github.com/containerd/containerd:
+    package: github.com/containerd/containerd
+    version: 3addd840653146c90a254301d6c3a663c7fd6429
+    update: false
+    options: {}
+  github.com/coreos/etcd:
+    package: github.com/coreos/etcd
+    version: ea5389a79f40206170582c1ea076191b8622cb8e
+    repo: https://github.com/aaronlehmann/etcd
+    update: false
+    options: {}
+  github.com/coreos/go-systemd:
+    package: github.com/coreos/go-systemd
+    version: v4
+    update: false
+    options: {}
+  github.com/coreos/pkg:
+    package: github.com/coreos/pkg
+    version: fa29b1d70f0beaddd4c7021607cc3c3be8ce94b8
+    update: false
+    options: {}
+  github.com/davecgh/go-spew:
+    package: github.com/davecgh/go-spew
+    version: 346938d642f2ec3594ed81d874461961cd0faa76
+    update: false
+    options: {}
+  github.com/deckarep/golang-set:
+    package: github.com/deckarep/golang-set
+    version: ef32fa3046d9f249d399f98ebaf9be944430fd1d
+    update: false
+    options: {}
+  github.com/docker/distribution:
+    package: github.com/docker/distribution
+    version: b38e5838b7b2f2ad48e06ec4b500011976080621
+    update: false
+    options: {}
+  github.com/docker/go-connections:
+    package: github.com/docker/go-connections
+    version: 3ede32e2033de7505e6500d6c868c2b9ed9f169d
+    update: false
+    options: {}
+  github.com/docker/go-events:
+    package: github.com/docker/go-events
+    version: 18b43f1bc85d9cdd42c05a6cd2d444c7a200a894
+    update: false
+    options: {}
+  github.com/docker/go-metrics:
+    package: github.com/docker/go-metrics
+    version: d466d4f6fd960e01820085bd7e1a24426ee7ef18
+    update: false
+    options: {}
+  github.com/docker/go-units:
+    package: github.com/docker/go-units
+    version: 9e638d38cf6977a37a8ea0078f3ee75a7cdb2dd1
+    update: false
+    options: {}
+  github.com/docker/libkv:
+    package: github.com/docker/libkv
+    version: 1d8431073ae03cdaedb198a89722f3aab6d418ef
+    update: false
+    options: {}
+  github.com/docker/libnetwork:
+    package: github.com/docker/libnetwork
+    version: b5cf4625d08ddfcbfce4426e29996bddb15b22b6
+    repo: https://github.com/niusmallnan/libnetwork
+    update: false
+    options: {}
+  github.com/docker/libtrust:
+    package: github.com/docker/libtrust
+    version: 9cbd2a1374f46905c68a4eb3694a130610adc62a
+    update: false
+    options: {}
+  github.com/docker/swarmkit:
+    package: github.com/docker/swarmkit
+    version: 79381d0840be27f8b3f5c667b348a4467d866eeb
+    update: false
+    options: {}
+  github.com/fluent/fluent-logger-golang:
+    package: github.com/fluent/fluent-logger-golang
+    version: v1.2.1
+    update: false
+    options: {}
+  github.com/fsnotify/fsnotify:
+    package: github.com/fsnotify/fsnotify
+    version: v1.2.11
+    update: false
+    options: {}
+  github.com/go-check/check:
+    package: github.com/go-check/check
+    version: 4ed411733c5785b40214c70bce814c3a3a689609
+    repo: https://github.com/cpuguy83/check.git
+    update: false
+    options: {}
+  github.com/go-ini/ini:
+    package: github.com/go-ini/ini
+    version: 060d7da055ba6ec5ea7a31f116332fe5efa04ce0
+    update: false
+    options: {}
+  github.com/godbus/dbus:
+    package: github.com/godbus/dbus
+    version: v4.0.0
+    update: false
+    options: {}
+  github.com/gogo/protobuf:
+    package: github.com/gogo/protobuf
+    version: v0.4
+    update: false
+    options: {}
+  github.com/golang/protobuf:
+    package: github.com/golang/protobuf
+    version: 7a211bcf3bce0e3f1d74f9894916e6f116ae83b4
+    update: false
+    options: {}
+  github.com/google/certificate-transparency:
+    package: github.com/google/certificate-transparency
+    version: d90e65c3a07988180c5b1ece71791c0b6506826e
+    update: false
+    options: {}
+  github.com/googleapis/gax-go:
+    package: github.com/googleapis/gax-go
+    version: da06d194a00e19ce00d9011a13931c3f6f6887c7
+    update: false
+    options: {}
+  github.com/gorilla/context:
+    package: github.com/gorilla/context
+    version: v1.1
+    update: false
+    options: {}
+  github.com/gorilla/mux:
+    package: github.com/gorilla/mux
+    version: v1.1
+    update: false
+    options: {}
+  github.com/grpc-ecosystem/go-grpc-prometheus:
+    package: github.com/grpc-ecosystem/go-grpc-prometheus
+    version: 6b7015e65d366bf3f19b2b2a000a831940f0f7e0
+    update: false
+    options: {}
+  github.com/hashicorp/go-immutable-radix:
+    package: github.com/hashicorp/go-immutable-radix
+    version: 8e8ed81f8f0bf1bdd829593fdd5c29922c1ea990
+    update: false
+    options: {}
+  github.com/hashicorp/go-memdb:
+    package: github.com/hashicorp/go-memdb
+    version: cb9a474f84cc5e41b273b20c6927680b2a8776ad
+    update: false
+    options: {}
+  github.com/hashicorp/go-msgpack:
+    package: github.com/hashicorp/go-msgpack
+    version: 71c2886f5a673a35f909803f38ece5810165097b
+    update: false
+    options: {}
+  github.com/hashicorp/go-multierror:
+    package: github.com/hashicorp/go-multierror
+    version: fcdddc395df1ddf4247c69bd436e84cfa0733f7e
+    update: false
+    options: {}
+  github.com/hashicorp/go-sockaddr:
+    package: github.com/hashicorp/go-sockaddr
+    version: acd314c5781ea706c710d9ea70069fd2e110d61d
+    update: false
+    options: {}
+  github.com/hashicorp/golang-lru:
+    package: github.com/hashicorp/golang-lru
+    version: a0d98a5f288019575c6d1f4bb1573fef2d1fcdc4
+    update: false
+    options: {}
+  github.com/hashicorp/memberlist:
+    package: github.com/hashicorp/memberlist
+    version: v0.1.0
+    update: false
+    options: {}
+  github.com/hashicorp/serf:
+    package: github.com/hashicorp/serf
+    version: 598c54895cc5a7b1a24a398d635e8c0ea0959870
+    update: false
+    options: {}
+  github.com/imdario/mergo:
+    package: github.com/imdario/mergo
+    version: 0.2.1
+    update: false
+    options: {}
+  github.com/inconshreveable/mousetrap:
+    package: github.com/inconshreveable/mousetrap
+    version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
+    update: false
+    options: {}
+  github.com/jhowardmsft/opengcs:
+    package: github.com/jhowardmsft/opengcs
+    version: d12d6dcbd5c64931d218954dac4208e1d3ef9a7f
+    update: false
+    options: {}
+  github.com/jmespath/go-jmespath:
+    package: github.com/jmespath/go-jmespath
+    version: 0b12d6b521d83fc7f755e7cfc1b1fbdd35a01a74
+    update: false
+    options: {}
+  github.com/kr/pty:
+    package: github.com/kr/pty
+    version: 5cf931ef8f
+    update: false
+    options: {}
+  github.com/mattn/go-shellwords:
+    package: github.com/mattn/go-shellwords
+    version: v1.0.3
+    update: false
+    options: {}
+  github.com/matttproud/golang_protobuf_extensions:
+    package: github.com/matttproud/golang_protobuf_extensions
+    version: v1.0.0
+    update: false
+    options: {}
+  github.com/miekg/dns:
+    package: github.com/miekg/dns
+    version: 75e6e86cc601825c5dbcd4e0c209eab180997cd7
+    update: false
+    options: {}
+  github.com/mistifyio/go-zfs:
+    package: github.com/mistifyio/go-zfs
+    version: 22c9b32c84eb0d0c6f4043b6e90fc94073de92fa
+    update: false
+    options: {}
+  github.com/opencontainers/go-digest:
+    package: github.com/opencontainers/go-digest
+    version: a6d0ee40d4207ea02364bd3b9e8e77b9159ba1eb
+    update: false
+    options: {}
+  github.com/opencontainers/image-spec:
+    package: github.com/opencontainers/image-spec
+    version: f03dbe35d449c54915d235f1a3cf8f585a24babe
+    update: false
+    options: {}
+  github.com/opencontainers/runc:
+    package: github.com/opencontainers/runc
+    version: 2d41c047c83e09a6d61d464906feb2a2f3c52aa4
+    repo: https://github.com/docker/runc
+    update: false
+    options: {}
+  github.com/opencontainers/runtime-spec:
+    package: github.com/opencontainers/runtime-spec
+    version: d42f1eb741e6361e858d83fc75aa6893b66292c4
+    update: false
+    options: {}
+  github.com/opencontainers/selinux:
+    package: github.com/opencontainers/selinux
+    version: v1.0.0-rc1
+    update: false
+    options: {}
+  github.com/pborman/uuid:
+    package: github.com/pborman/uuid
+    version: v1.0
+    update: false
+    options: {}
+  github.com/philhofer/fwd:
+    package: github.com/philhofer/fwd
+    version: 98c11a7a6ec829d672b03833c3d69a7fae1ca972
+    update: false
+    options: {}
+  github.com/pivotal-golang/clock:
+    package: github.com/pivotal-golang/clock
+    version: 3fd3c1944c59d9742e1cd333672181cd1a6f9fa0
+    update: false
+    options: {}
+  github.com/pkg/errors:
+    package: github.com/pkg/errors
+    version: 839d9e913e063e28dfd0e6c7b7512793e0a48be9
+    update: false
+    options: {}
+  github.com/pmezard/go-difflib:
+    package: github.com/pmezard/go-difflib
+    version: v1.0.0
+    update: false
+    options: {}
+  github.com/prometheus/client_golang:
+    package: github.com/prometheus/client_golang
+    version: 52437c81da6b127a9925d17eb3a382a2e5fd395e
+    update: false
+    options: {}
+  github.com/prometheus/client_model:
+    package: github.com/prometheus/client_model
+    version: fa8ad6fec33561be4280a8f0514318c79d7f6cb6
+    update: false
+    options: {}
+  github.com/prometheus/common:
+    package: github.com/prometheus/common
+    version: ebdfc6da46522d58825777cf1f90490a5b1ef1d8
+    update: false
+    options: {}
+  github.com/prometheus/procfs:
+    package: github.com/prometheus/procfs
+    version: abf152e5f3e97f2fafac028d2cc06c1feb87ffa5
+    update: false
+    options: {}
+  github.com/sean-/seed:
+    package: github.com/sean-/seed
+    version: e2103e2c35297fb7e17febb81e49b312087a2372
+    update: false
+    options: {}
+  github.com/seccomp/libseccomp-golang:
+    package: github.com/seccomp/libseccomp-golang
+    version: 32f571b70023028bd57d9288c20efbcb237f3ce0
+    update: false
+    options: {}
+  github.com/spf13/cobra:
+    package: github.com/spf13/cobra
+    version: v1.5.1
+    repo: https://github.com/dnephin/cobra.git
+    update: false
+    options: {}
+  github.com/spf13/pflag:
+    package: github.com/spf13/pflag
+    version: 9ff6c6923cfffbcd502984b8e0c80539a94968b7
+    update: false
+    options: {}
+  github.com/stevvooe/continuity:
+    package: github.com/stevvooe/continuity
+    version: cd7a8e21e2b6f84799f5dd4b65faf49c8d3ee02d
+    update: false
+    options: {}
+  github.com/stretchr/testify:
+    package: github.com/stretchr/testify
+    version: 4d4bfba8f1d1027c4fdbe371823030df51419987
+    update: false
+    options: {}
+  github.com/syndtr/gocapability:
+    package: github.com/syndtr/gocapability
+    version: 2c00daeb6c3b45114c80ac44119e7b8801fdd852
+    update: false
+    options: {}
+  github.com/tchap/go-patricia:
+    package: github.com/tchap/go-patricia
+    version: v2.2.6
+    update: false
+    options: {}
+  github.com/tinylib/msgp:
+    package: github.com/tinylib/msgp
+    version: 75ee40d2601edf122ef667e2a07d600d4c44490c
+    update: false
+    options: {}
+  github.com/tonistiigi/fifo:
+    package: github.com/tonistiigi/fifo
+    version: 1405643975692217d6720f8b54aeee1bf2cd5cf4
+    update: false
+    options: {}
+  github.com/tonistiigi/fsutil:
+    package: github.com/tonistiigi/fsutil
+    version: 0ac4c11b053b9c5c7c47558f81f96c7100ce50fb
+    update: false
+    options: {}
+  github.com/vbatts/tar-split:
+    package: github.com/vbatts/tar-split
+    version: v0.10.1
+    update: false
+    options: {}
+  github.com/vdemeester/shakers:
+    package: github.com/vdemeester/shakers
+    version: 24d7f1d6a71aa5d9cbe7390e4afb66b7eef9e1b3
+    update: false
+    options: {}
+  github.com/vishvananda/netlink:
+    package: github.com/vishvananda/netlink
+    version: bd6d5de5ccef2d66b0a26177928d0d8895d7f969
+    update: false
+    options: {}
+  github.com/vishvananda/netns:
+    package: github.com/vishvananda/netns
+    version: 604eaf189ee867d8c147fafc28def2394e878d25
+    update: false
+    options: {}
+  golang.org/x/crypto:
+    package: golang.org/x/crypto
+    version: 3fbbcd23f1cb824e69491a5930cfeff09b12f4d2
+    update: false
+    options: {}
+  golang.org/x/net:
+    package: golang.org/x/net
+    version: 7dcfb8076726a3fdd9353b6b8a1f1b6be6811bd6
+    update: false
+    options: {}
+  golang.org/x/oauth2:
+    package: golang.org/x/oauth2
+    version: 96382aa079b72d8c014eb0c50f6c223d1e6a2de0
+    update: false
+    options: {}
+  golang.org/x/sync:
+    package: golang.org/x/sync
+    version: de49d9dcd27d4f764488181bea099dfe6179bcf0
+    update: false
+    options: {}
+  golang.org/x/sys:
+    package: golang.org/x/sys
+    version: 8f0908ab3b2457e2e15403d3697c9ef5cb4b57a9
+    update: false
+    options: {}
+  golang.org/x/text:
+    package: golang.org/x/text
+    version: f72d8390a633d5dfb0cc84043294db9f6c935756
+    update: false
+    options: {}
+  golang.org/x/time:
+    package: golang.org/x/time
+    version: a4bde12657593d5e90d0533a3e4fd95e635124cb
+    update: false
+    options: {}
+  google.golang.org/api:
+    package: google.golang.org/api
+    version: 3cc2e591b550923a2c5f0ab5a803feda924d5823
+    update: false
+    options: {}
+  google.golang.org/genproto:
+    package: google.golang.org/genproto
+    version: d80a6e20e776b0b17a324d0ba1ab50a39c8e8944
+    update: false
+    options: {}
+  google.golang.org/grpc:
+    package: google.golang.org/grpc
+    version: v1.3.0
+    update: false
+    options: {}
